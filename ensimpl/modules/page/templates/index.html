@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Hello, world!</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
+          integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
+          crossorigin="anonymous">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Ensimpl Test</h1>
+    <p class="lead">Basic example for Ensimpl API.</p>
+
+    <div class="row">
+        <div class="col-lg-12">
+
+            <div class="form-group">
+                <label for="selectVersion">Version</label>
+                <select class="form-control" id="selectVersion">
+                    <option value="">Latest</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="input-group">
+                <input type="text" id="searchTerm" class="form-control"
+                       placeholder="Search for..." aria-label="Search for...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" id="btnGo" type="button">Go!</button>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Symbol</th>
+                    <th scope="col">Position</th>
+                    <th scope="col">Reason</th>
+                </tr>
+                </thead>
+                <tbody id="tblBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script
+    src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+    crossorigin="anonymous"></script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"
+    integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
+    crossorigin="anonymous"></script>
+<script
+    src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"
+    integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ"
+    crossorigin="anonymous"></script>
+    
+<script src="{{ url_for('api.ensimpl_js') }}"></script>
+
+<script>
+
+    <!--
+
+
+    /**
+     * Perform Ensimpl search.
+     */
+    function findGene() {
+        let searchVal = $("#searchTerm").val().trim().toUpperCase();
+        let version = $("#selectVersion").val();
+
+        $("#tblBody").html('');
+
+        if (searchVal.length === 0) {
+            return;
+        }
+
+        let options = {species: 'Mm',
+                       limit: 100};
+
+        if (version !== "") {
+            options['version'] = version;
+        }
+        //window.ENSIMPL.reconfigure(settings);
+
+        window.ENSIMPL.search(searchVal, options, function (data) {
+            console.log('data=', data);
+            $.each(data.result.matches, function(idx, elem) {
+                $("#tblBody").append('<tr>' +
+                                     '<td>' + elem.ensembl_gene_id + '</td>' +
+                                     '<td>' + elem.symbol + '</td>' +
+                                     '<td>' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>' +
+                                     '<td>' + elem.match_reason + '</td>' +
+                                     '</tr>');
+            });
+        });
+    }
+
+    $().ready(function () {
+
+        window.ENSIMPL = new ensimpl();
+
+        window.ENSIMPL.versions(function(data) {
+           $.each(data, function(idx, elem) {
+               $("#selectVersion").append('<option value="' + elem['version'] + '">' + elem['version'] + '</option>')
+           });
+        });
+
+        $('#searchTerm').keypress(function (evt) {
+            let code = evt.which ? evt.which : evt.keyCode;
+            if (code === 13) {
+                $(this).blur();
+                $('#btnGo').focus().click();
+            }
+        });
+
+        $('#btnGo').button().on('click', function (evt) {
+            evt.preventDefault();
+            findGene();
+            console.log('findGene');
+            return false;
+        });
+
+    });
+    //-->
+</script>
+</body>
+</html>

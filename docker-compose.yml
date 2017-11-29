@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  website:
+    build: .
+    command: >
+      gunicorn -c "python:config.gunicorn" --reload "ensimpl.app:create_app()"
+    env_file:
+      - '.env'
+    volumes:
+      - '.:/app/ensimpl'
+      - '/Users/mvincent/work_new/ensimpl/data:/app/ensimpl/data'
+    ports:
+      - '8000:8000'

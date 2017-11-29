@@ -1,0 +1,4 @@
+
+        [console_scripts]
+        ensimpl=cli.cli:cli
+    
