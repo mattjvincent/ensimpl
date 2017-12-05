@@ -1,8 +1,120 @@
 {% extends 'layouts/base.html' %}
 
 {% block title %}Error 500{% endblock %}
-{% block heading %}<h2>Error 500</h2>{% endblock %}
 
 {% block body %}
-  <p>Add a soothing error 500 message here.</p>
+
+<div class="container">
+    <div class="row">
+        <div class="col-xl-12">
+            <h1 class="display-1 text-center">500</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-12">
+            <p class="lead text-center">
+                Something has gone wrong!  Please select where you would like to go...
+            </p>
+            <div id="chart" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script>
+function genRandom(minimum, maximum, precision) {
+    minimum = minimum === undefined ? 0 : minimum;
+    maximum = maximum === undefined ? 9007199254740992 : maximum;
+    precision = precision === undefined ? 0 : precision;
+    let random = Math.random() * (maximum - minimum) + minimum;
+    return random.toFixed(precision);
+}
+
+function getRandomURL() {
+    let urls = ['http://www.google.com',
+                'http://www.ensembl.org',
+                'http://www.jax.org',
+                'http://www.github.com'];
+
+    return urls[+genRandom(0,3)];
+}
+
+
+function generateData() {
+    let home = +genRandom(41, 63, 2);
+    let churchill = +genRandom(12, 17, 2)+0;
+    let random = +genRandom(3, 18, 2)+0;
+    let nothing = 100 - home - churchill - random;
+
+    return [{name:'Home', url: '{{ url_for("page.home", _external=True) }}', y: home},
+            {name:'Churchill Website', url: 'http://churchill-lab.jax.org', y: churchill},
+            {name:'Some Random URL', url: getRandomURL(), y: random},
+            {name:'Stay Here', url: '#', y: nothing}];
+    }
+
+// Make monochrome colors
+var pieColors = (function () {
+    var colors = [],
+        base = Highcharts.getOptions().colors[0],
+        i;
+
+    for (i = 0; i < 10; i += 1) {
+        // Start out with a darkened base color (negative brighten), and end
+        // up with a much brighter color
+        colors.push(Highcharts.Color(base).brighten((i - 3) / 7).get());
+    }
+    return colors;
+}());
+
+// Build the chart
+Highcharts.chart('chart', {
+    chart: {
+        plotBackgroundColor: null,
+        plotBorderWidth: null,
+        plotShadow: false,
+        type: 'pie'
+    },
+    title: {
+        text: ''
+    },
+    tooltip: {
+        pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+    },
+    plotOptions: {
+        pie: {
+            allowPointSelect: true,
+            cursor: 'pointer',
+            colors: pieColors,
+            events: {
+                click: function (event) {
+                    window.location = event.point.url;
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
+                distance: -50
+            }
+        }
+    },
+    series: [{
+        name: 'Where Do You Want To Go?',
+        data: generateData()
+    }],
+    credits: {
+        enabled: false // A plugin for highcharts is of course using highcharts
+    },
+    exporting: {
+        enabled: false
+    }
+
+
+});
+</script>
 {% endblock %}

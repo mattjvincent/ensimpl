@@ -365,9 +365,14 @@ def execute_query(query, version=None, limit=None):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
+        gene_id = 'ensembl_gene_id'
+        if query.region:
+            gene_id = 'ensembl_id'
+
         for row in cursor.execute(query.query, query.get_paramaters()):
             match = Match()
-            match.ensembl_gene_id = row['ensembl_gene_id']
+
+            match.ensembl_gene_id = row[gene_id]
             match.ensembl_version = row['ensembl_version']
             match.species_id = row['species_id']
             match.symbol = row['symbol']

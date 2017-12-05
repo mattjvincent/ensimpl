@@ -1,5 +1,5 @@
 # -*- coding: utf_8 -*-
-
+from collections import OrderedDict
 import sqlite3
 
 import ensimpl.utils as utils
@@ -54,6 +54,59 @@ def chromosomes(version, species_id=None):
         chroms[row['species_id']] = data
 
     return chroms
+
+
+def karyotypes(version, species_id=None):
+    """Get the karyotypes.
+
+    Args:
+        version (int): Ensembl version or None for latest
+        species_id (str): the species identifier
+
+    Returns:
+        dict: a ``dict`` of lists with each key being a species identifier
+            each ``list`` element is another ``dict`` with the following keys:
+            karyotype, chromosome, name, length, order
+
+    """
+    sql_karyotypes = ('SELECT * FROM karyotypes k, chromosomes c '
+                      ' WHERE k.chromosome = c.chromosome'
+                      '   AND k.species_id = c.species_id ')
+    sql_where = ' AND c.species_id = ? '
+    sql_order = ' ORDER BY k.species_id, c.chromosome_num, k.seq_region_start '
+
+    conn = fetch_utils.connect_to_database(version)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    sql_statement = sql_karyotypes
+
+    params = ()
+
+    if species_id:
+        sql_statement += sql_where
+        params = (species_id, )
+
+    sql_statement += sql_order
+
+    karyotype_data = {}
+
+    for row in cursor.execute(sql_statement, params):
+        species_data = karyotype_data.get(row['species_id'], OrderedDict())
+        chrom_data = species_data.get(row['chromosome'],
+                                      {'chromosome': row['chromosome'],
+                                       'name': row['chromosome'],
+                                       'length': row['chromosome_length'],
+                                       'order': row['chromosome_num'],
+                                       'karyotypes': []})
+        chrom_data['karyotypes'].append({'seq_region_start': row['seq_region_start'],
+                                         'seq_region_end': row['seq_region_end'],
+                                         'band': row['band'],
+                                         'stain': row['stain']})
+        species_data[row['chromosome']] = chrom_data
+        karyotype_data[row['species_id']] = species_data
+
+    return karyotype_data
 
 
 def meta(version):

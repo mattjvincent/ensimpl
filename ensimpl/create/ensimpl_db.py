@@ -48,8 +48,8 @@ def initialize(db):
         utils.format_time(start, time.time())))
 
 
-def insert_chromosomes(db, ref, chromosomes):
-    """Insert chromosome information into the database.
+def insert_chromosomes_karyotypes(db, ref, chromosomes):
+    """Insert chromosome and karyotype information into the database.
 
     Args:
         db (str): the name of the database file
@@ -62,23 +62,45 @@ def insert_chromosomes(db, ref, chromosomes):
     start = time.time()
     conn = sqlite3.connect(db)
 
-    sql_chromosomes_insert = 'INSERT INTO chromosomes_tmp ' + \
-                             'VALUES (?, ?, ?, ?)'
+    sql_chromosomes_insert = ('INSERT INTO chromosomes_tmp '
+                              'VALUES (?, ?, ?, ?)')
 
-    chromosome_data = []
+    sql_karyotypes_insert = ('INSERT INTO karyotypes_tmp '
+                             'VALUES (?, ?, ?, ?, ?, ?, ?)')
+
+    chromosome_temp = {}
+    karyotype_data = []
 
     for counter, chromosome in enumerate(chromosomes):
-        chromosome_data.append((counter + 1, chromosome['name'],
-                                chromosome['length'], ref.species_id))
+        if chromosome['name'] not in chromosome_temp:
+            chromosome_temp[chromosome['name']] = (len(chromosome_temp) + 1,
+                                                   chromosome['name'],
+                                                   chromosome['length'],
+                                                   ref.species_id)
+        karyotype_data.append((counter + 1,
+                               chromosome['name'],
+                               chromosome['seq_region_start'],
+                               chromosome['seq_region_end'],
+                               chromosome['band'],
+                               chromosome['stain'],
+                               ref.species_id))
+
+    chromosome_data = []
+    for k, v in chromosome_temp.items():
+        chromosome_data.append((v))
 
     cursor = conn.cursor()
+    LOG.debug('Inserting {:,} karyotypes...'.format(len(karyotype_data)))
+    cursor.executemany(sql_karyotypes_insert, karyotype_data)
+
     LOG.debug('Inserting {:,} chromosomes...'.format(len(chromosome_data)))
     cursor.executemany(sql_chromosomes_insert, chromosome_data)
+
     cursor.close()
     conn.commit()
     conn.close()
 
-    LOG.info('Chromosomes inserted in: {}'.format(
+    LOG.info('Chromosomes and karyotpes inserted in: {}'.format(
         utils.format_time(start, time.time())))
 
 
@@ -276,6 +298,10 @@ def finalize(db, release):
     cursor.execute(SQL_INSERT_CHROMOSOMES)
     conn.commit()
 
+    LOG.info('Finalizing karyotypes table...')
+    cursor.execute(SQL_INSERT_KARYOTYPES)
+    conn.commit()
+
     LOG.info('Finalizing genes table...')
     cursor.execute(SQL_INSERT_GENES)
     conn.commit()
@@ -365,6 +391,28 @@ SQL_CREATE_TABLES = ['''
        chromosome_num INTEGER NOT NULL,
        chromosome TEXT NOT NULL,
        chromosome_length INTEGER NOT NULL,
+       species_id TEXT NOT NULL
+    );
+''', '''
+    CREATE TABLE IF NOT EXISTS karyotypes (
+       karyotypes_key INTEGER,
+       karyotype_num INTEGER NOT NULL,
+       chromosome TEXT NOT NULL,
+       seq_region_start INTEGER,
+       seq_region_end INTEGER,
+       band TEXT,
+       stain TEXT,
+       species_id TEXT NOT NULL,
+       PRIMARY KEY (karyotypes_key)
+    );
+''', '''
+    CREATE TABLE IF NOT EXISTS karyotypes_tmp (
+       karyotype_num INTEGER NOT NULL,
+       chromosome TEXT NOT NULL,
+       seq_region_start INTEGER,
+       seq_region_end INTEGER,
+       band TEXT,
+       stain TEXT,
        species_id TEXT NOT NULL
     );
 ''', '''
@@ -467,6 +515,21 @@ SQL_INSERT_CHROMOSOMES = '''
            species_id
       FROM chromosomes_tmp
      ORDER BY species_id, chromosome_num;
+'''
+
+SQL_INSERT_KARYOTYPES = '''
+    INSERT
+      INTO karyotypes
+    SELECT null,
+           karyotype_num,
+           chromosome,
+           seq_region_start,
+           seq_region_end,
+           band,
+           stain,
+           species_id
+      FROM karyotypes_tmp
+     ORDER BY species_id, karyotype_num;
 '''
 
 SQL_INSERT_GENES = '''
@@ -626,11 +689,15 @@ SQL_INDICES = [
     'CREATE INDEX IF NOT EXISTS idx_chromosomes_cnum ON chromosomes (chromosome_num ASC);',
     'CREATE INDEX IF NOT EXISTS idx_chromosomes_chrom ON chromosomes (chromosome ASC);',
     'CREATE INDEX IF NOT EXISTS idx_chromosomes_species ON chromosomes (species_id ASC);',
+    'CREATE INDEX IF NOT EXISTS idx_karyotypes_knum ON karyotypes (karyotype_num ASC);',
+    'CREATE INDEX IF NOT EXISTS idx_karyotypes_chrom ON karyotypes (chromosome ASC);',
+    'CREATE INDEX IF NOT EXISTS idx_karyotypes_species ON karyotypes (species_id ASC);',
     'CREATE INDEX IF NOT EXISTS idx_search_ranking_id ON search_ranking (ranking_id ASC);'
 ]
 
 SQL_TABLES_DROP = [
     'DROP TABLE chromosomes_tmp',
+    'DROP TABLE karyotypes_tmp',
     'DROP TABLE ensembl_genes_tmp',
     'DROP TABLE ensembl_genes_lookup_tmp',
     'DROP TABLE ensembl_gtpe_tmp'

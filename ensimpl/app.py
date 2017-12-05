@@ -1,12 +1,12 @@
 import os
 
 from flask import Flask, render_template
-from werkzeug.contrib.fixers import ProxyFix
 
-from ensimpl.modules.api.views import api
-from ensimpl.modules.page.views import page
 from ensimpl.extensions import debug_toolbar
-
+from ensimpl.modules.api.views import api
+from ensimpl.modules.navigator.views import navigator
+from ensimpl.modules.page.views import page
+from ensimpl.utils import ReverseProxied
 
 def create_app(settings_override=None):
     """
@@ -20,7 +20,8 @@ def create_app(settings_override=None):
     app.config.from_object('config.settings')
     
     if app.config.from_envvar('ENSIMPL_SETTINGS', silent=True):
-        app.logger.info('Using ENSIMPL_SETTINGS: {}'.format(os.environ['ENSIMPL_SETTINGS']))
+        env_settings = os.environ['ENSIMPL_SETTINGS']
+        app.logger.info('Using ENSIMPL_SETTINGS: {}'.format(env_settings))
 
     if settings_override:
         app.logger.info('Overriding settings with parameters')
@@ -30,8 +31,9 @@ def create_app(settings_override=None):
 
     middleware(app)
 
-    app.register_blueprint(page)
     app.register_blueprint(api)
+    app.register_blueprint(navigator)
+    app.register_blueprint(page)
 
     extensions(app)
     error_templates(app)
@@ -58,7 +60,7 @@ def middleware(app):
     :param app: Flask application instance
     :return: None
     """
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+    app.wsgi_app = ReverseProxied(app.wsgi_app)
 
     return None
 
@@ -89,3 +91,5 @@ def error_templates(app):
         app.errorhandler(error)(render_status)
 
     return None
+
+

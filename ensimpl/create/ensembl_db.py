@@ -213,16 +213,16 @@ SELECT *
 '''
 
 SQL_ENSEMBL_SELECT_CHROMOSOME = '''
-SELECT DISTINCT sr.name, sr.length
+SELECT DISTINCT sr.name, sr.length, k.seq_region_start, k.seq_region_end, k.band, k.stain
   FROM coord_system cs,
        seq_region sr
-  LEFT JOIN karyotype ON karyotype.seq_region_id = sr.seq_region_id
+  LEFT JOIN karyotype k ON k.seq_region_id = sr.seq_region_id
  WHERE cs.coord_system_id = sr.coord_system_id
    AND sr.name in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 
                    '11',  '12', '13', '14', '15', '16', '17', '18', '19', '20',
                    '21', '22', 'X', 'Y', 'MT')
    AND cs.rank = 1
- ORDER BY cast(replace(replace(replace(sr.name, 'X', '50'), 'Y', '51'), 'MT', '52') as signed)
+ ORDER BY cast(replace(replace(replace(sr.name, 'X', '50'), 'Y', '51'), 'MT', '52') as signed), k.seq_region_start
 '''
 
 
@@ -282,8 +282,8 @@ def connect_to_database(ref):
         raise e
 
 
-def extract_chromosomes(ref):
-    """Extract the synonyms from Ensembl.
+def extract_chromosomes_karyotypes(ref):
+    """Extract the chromosomes and karyotypes from Ensembl.
 
     Args:
         ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
@@ -297,7 +297,7 @@ def extract_chromosomes(ref):
     try:
         conn = connect_to_database(ref)
 
-        LOG.debug('Extracting chromosomes...')
+        LOG.debug('Extracting chromosomes and karyotypes...')
         with conn.cursor() as cursor:
             num_rows = cursor.execute(SQL_ENSEMBL_SELECT_CHROMOSOME)
             LOG.debug('{:,} records returned'.format(num_rows))
@@ -307,7 +307,7 @@ def extract_chromosomes(ref):
 
             LOG.debug('{:,} chromosomes extracted'.format(num_rows))
     except pymysql.Error as e:
-        LOG.error('Unable to extract chromosomes from ensembl: {}').format(e)
+        LOG.error('Unable to extract chromosomes and karyotpes from ensembl: {}').format(e)
         return None
 
     return chromosomes

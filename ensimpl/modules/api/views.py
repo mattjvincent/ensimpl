@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from functools import wraps
 
 from flask import Blueprint
@@ -51,7 +53,7 @@ def versions():
     """Get the Ensimpl Javascript file.
 
     Returns:
-        the Javascript response object
+        JSON
     """
     version_info = []
 
@@ -64,6 +66,11 @@ def versions():
 @api.route("/chromosomes")
 @support_jsonp
 def chromosomes():
+    """Get the chromosome information.
+
+    Returns:
+        JSON
+    """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
     version = request.values.get('version', None)
@@ -79,7 +86,40 @@ def chromosomes():
 
         for (species_id, chrom_data) in all_chromosomes.items():
             ret['species'][species_id] = meta['species'][species_id]
-            ret['species'][species_id]['chromsomes'] = chrom_data
+            ret['species'][species_id]['chromosomes'] = chrom_data
+
+    except Exception as e:
+        response = jsonify(message=str(e))
+        response.status_code = 500
+        return response
+
+    return jsonify(ret)
+
+
+@api.route("/karyotypes")
+@support_jsonp
+def karyotypes():
+    """Get the karyotype information.
+
+    Returns:
+        JSON
+    """
+    current_app.logger.debug('Call for: GET {}'.format(request.url))
+
+    version = request.values.get('version', None)
+    species = request.values.get('species', None)
+
+    ret = {'version': None, 'species': {}}
+
+    try:
+        meta = get.meta(version)
+        ret['version'] = meta['version']
+
+        all_karyotypes = get.karyotypes(version, species)
+
+        for (species_id, karyotype_data) in all_karyotypes.items():
+            ret['species'][species_id] = meta['species'][species_id]
+            ret['species'][species_id]['chromosomes'] = karyotype_data
 
     except Exception as e:
         response = jsonify(message=str(e))
@@ -92,6 +132,11 @@ def chromosomes():
 @api.route("/gene")
 @support_jsonp
 def gene():
+    """Get the gene information.
+
+    Returns:
+        JSON
+    """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
     version = request.values.get('version', None)
@@ -127,6 +172,11 @@ def gene():
 @api.route("/genes")
 @support_jsonp
 def genes():
+    """Get the gene(s) information.
+
+    Returns:
+        JSON
+    """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
     version = request.values.get('version', None)
@@ -159,6 +209,11 @@ def genes():
 @api.route("/search")
 @support_jsonp
 def search():
+    """Perform a search
+
+    Returns:
+        JSON
+    """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
     version = request.values.get('version', None)

@@ -129,7 +129,8 @@ def create(ensembl, directory, resource):
 
         for species_id, ensembl_reference in sorted(release_value.items()):
             LOG.info('Extracting chromosomes...')
-            chromosomes = ensembl_db.extract_chromosomes(ensembl_reference)
+            chromosomes_karyotypes = \
+                ensembl_db.extract_chromosomes_karyotypes(ensembl_reference)
 
             LOG.info('Extracting genes...')
             genes = ensembl_db.extract_ensembl_genes(ensembl_reference)
@@ -141,8 +142,9 @@ def create(ensembl, directory, resource):
             gtep = ensembl_db.extract_ensembl_gtpe(ensembl_reference)
 
             LOG.info('Inserting chromsomes..')
-            ensimpl_db.insert_chromosomes(ensimpl_file, ensembl_reference,
-                                          chromosomes)
+            ensimpl_db.insert_chromosomes_karyotypes(ensimpl_file,
+                                                     ensembl_reference,
+                                                     chromosomes_karyotypes)
 
             LOG.info('Inserting genes..')
             ensimpl_db.insert_genes(ensimpl_file, ensembl_reference, genes,

@@ -15,6 +15,72 @@ logging.basicConfig(format='[ENsimpl] [%(asctime)s] %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
+class ReverseProxied(object):
+    """
+    Wrap the application in this middleware and configure the
+    front-end server (Apaccto add these headers, to let you quietly bind
+    this to a URL other than / and to an HTTP scheme that is 
+    different than what is used locally.
+
+    http://flask.pocoo.org/snippets/35/
+
+    In apache:
+
+    <Proxy http://server:port>
+        Header add X_FORWADED_PATH "/myprefix"
+        RequestHeader set X_FORWARDED_PATH "/myprefix"
+    </Proxy>
+
+    ProxyPass /myprefix http://server:port disablereuse=On
+    ProxyPassReverse /myprefix http://server:port
+
+    In nginx:
+
+    location /myprefix {
+        proxy_pass http://192.168.0.1:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Scheme $scheme;
+        proxy_set_header X-Script-Name /myprefix;
+        }
+
+    """
+    def __init__(self, app):
+        """
+        Constructor.
+
+        Args:
+            app: the application
+        """
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        """
+        Middleware call.
+
+        Args:
+            environ (dict): application environment
+            start_response (Response.start_response): response method
+
+        Returns:
+            application
+        """
+        script_name = environ.get('HTTP_X_FORWARDED_PATH', '')
+
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+            path_info = environ['PATH_INFO']
+            if path_info.startswith(script_name):
+                environ['PATH_INFO'] = path_info[len(script_name):]
+
+        scheme = environ.get('HTTP_X_SCHEME', '')
+
+        if scheme:
+            environ['wsgi.url_scheme'] = scheme
+
+        return self.app(environ, start_response)
+
+
 def get_logger():
     """Get the logger.
 
@@ -167,7 +233,15 @@ def delete_file(file_name):
 
 
 def merge_two_dicts(x, y):
-    """Given two dicts, merge them into a new dict as a shallow copy."""
+    """Given two dicts, merge them into a new dict as a shallow copy.
+
+    Args:
+        x (dict): a dictionary
+        y (dict): a dictionary
+
+    Returns:
+        merged dictionary
+    """
     z = x.copy()
     z.update(y)
     return z

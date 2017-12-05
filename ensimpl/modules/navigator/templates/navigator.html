@@ -1,0 +1,208 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Genome Navigator{% endblock %}
+
+{% block head %}
+    <style>
+    svg text {font-family:'Lato',Helvetica,Arial,sans-serif}
+    .y-axis path,.y-axis line{fill:none;stroke:none;shape-rendering:crispEdges;}
+    .y-axis text{font-family:sans-serif;font-size:.8rem;}
+    .x-axis path,.x-axis line{fill:none;stroke:none;shape-rendering:crispEdges;}
+    .x-grid .tick{stroke:rgb(199,199,199);stroke-width:1;shape-rendering:crispEdges;}
+    .x-axis text{font-family:sans-serif;font-size:.8rem;}
+    .brush .extent{stroke:red;fill:red;fill-opacity:.5;shape-rendering:crispEdges;}
+    .svg-container {
+        display: inline-block;
+        position: relative;
+        width: 100%;
+        padding-bottom: 50%; /* aspect ratio */
+        vertical-align: top;
+        overflow: hidden;
+    }
+    .svg-content-responsive {
+        display: inline-block;
+        position: absolute;
+        top: 10px;
+        left: 0;
+    }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+<div class="container">
+
+    <h1>Genome Navigator</h1>
+    <p class="lead"></p>
+
+    <div class="row">
+        <div class="col-sm-12">
+
+            <div class="form-group">
+                <label for="selectVersion">Version</label>
+                <select class="form-control" id="selectVersion">
+                    <option value="">Latest</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="input-group">
+                <input type="text" id="searchTerm" class="form-control"
+                       placeholder="Search for..." aria-label="Search for...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" id="btnGo" type="button">Go!</button>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div id="chromosomeKaryotype"></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div id="searchStatus"></div>
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th class="" scope="col">ID</th>
+                    <th class="" scope="col">Symbol</th>
+                    <th class="d-none d-md-table-cell" scope="col">Position</th>
+                    <th class="d-none d-xl-table-cell" scope="col">Match Reason</th>
+                    <th class="d-none d-xl-table-cell" scope="col">Description</th>
+                </tr>
+                </thead>
+                <tbody id="tblBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+<script
+    src="https://d3js.org/d3.v3.min.js"
+    crossorigin="anonymous"></script>
+
+<script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
+<script src="{{ url_for('nav.karyotype_js', _external=True) }}"></script>
+
+<script>
+
+    <!--
+    /**
+     * Perform Ensimpl search.
+     */
+    function findGene() {
+        let searchVal = $("#searchTerm").val().trim().toUpperCase();
+        let version = $("#selectVersion").val();
+
+        $("#tblBody").html('');
+
+        if (searchVal.length === 0) {
+            return;
+        }
+
+        let options = {species: 'Mm',
+                       limit: 100};
+
+        if (version !== "") {
+            options['version'] = version;
+        }
+        //window.ENSIMPL.reconfigure(settings);
+
+        window.ENSIMPL.search(searchVal, options, function (data) {
+            console.log('data=', data);
+            let message = '';
+            if (data.result.num_results === 0) {
+                message = 'No matches found';
+            } else if (data.result.num_results === 1) {
+                message = '1 match found';
+            } else if (data.result.num_results > 100) {
+                message = 'Showing first ' + data.result.num_matches + ' matches out of ' + data.result.num_results;
+            } else {
+                message = data.result.num_results + ' matches found';
+            }
+            $("#searchStatus").html(message);
+            $.each(data.result.matches, function(idx, elem) {
+                $("#tblBody").append('<tr>' +
+                                     '<td>' + elem.ensembl_gene_id + '</td>' +
+                                     '<td>' + elem.symbol + '</td>' +
+                                     '<td class="d-none d-md-table-cell">' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.match_reason + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.name + '</td>' +
+                                     '</tr>');
+            });
+        });
+    }
+
+
+    function onSelected(selection) {
+        $("#searchTerm").val(selection.chr + ":" + selection.start + "-" + selection.end);
+        findGene();
+    }
+
+    function onHover(selection) {
+        //$("#hoverInfo").html(selection.str);
+    }
+
+    function onHoverStop(selection) {
+        //$("#hoverInfo").html('');
+    }
+
+    $().ready(function () {
+
+        console.log($("#chromosomeKaryotype").width() - 100, $("#chromosomeKaryotype").width() / 3);
+
+        window.ENSIMPL = new ensimpl();
+        window.KARYOTYPE = new karyotype({'width': $("#chromosomeKaryotype").width() - 100,
+                                          'height': $("#chromosomeKaryotype").width() / 3,
+                                          'id':'chromosomeKaryotype',
+                                          'onHover':onHover,
+                                          'onHoverStop': onHoverStop,
+                                          'showPositionOnHover': false,
+                                          'onSelection':onSelected,
+                                          //'onSelecting':onSelecting,
+                                          'url':"{{ url_for('api.karyotypes', _external=True) }}?species=mm" });
+
+        window.ENSIMPL.versions(function(data) {
+           $.each(data, function(idx, elem) {
+               $("#selectVersion").append('<option value="' + elem['version'] + '">' + elem['version'] + '</option>')
+           });
+        });
+
+        $('#searchTerm').keypress(function (evt) {
+            let code = evt.which ? evt.which : evt.keyCode;
+            if (code === 13) {
+                $(this).blur();
+                $('#btnGo').focus().click();
+            }
+        });
+
+        $('#btnGo').button().on('click', function (evt) {
+            evt.preventDefault();
+            findGene();
+            console.log('findGene');
+            return false;
+        });
+
+        $("#selectVersion").on("change", function (evt) {
+           let version = $("#selectVersion").val();
+           $("#chromosomeKaryotype").html("");
+           window.KARYOTYPE.setURL("{{ url_for('api.karyotypes', _external=True) }}?species=mm&version=" + version);
+        });
+
+    });
+    //-->
+</script>
+
+{% endblock %}
+

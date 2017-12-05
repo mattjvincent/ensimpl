@@ -12,8 +12,15 @@ ENSIMPL_DB_DEFAULT = None
 def get_ensimpl_db(version=None):
     """
     Get the database based upon ``version``.
-    :param int version: the version number
-    :return: the database file
+
+    Args:
+        version (int): the version number
+
+    Returns:
+        the database file
+
+    Raises:
+        ValueError if unable to find the ``version``
     """
     try:
         if version:
@@ -26,12 +33,11 @@ def get_ensimpl_db(version=None):
 
 def get_all_ensimpl_dbs(directory):
     """
-    Get a list of all files in ``directory``.
+    Configure the "global" list of ensimpl db files in ``directory``.
 
-    :param str directory: a directory
-    :return: a list of all files
+    Args:
+        directory (str): directory path
     """
-
     file_str = os.path.join(directory, 'ensimpl.*.db3')
     dbs = glob.glob(file_str)
 
@@ -63,9 +69,9 @@ def init(directory=None):
     """
     Initialize the "global" database variables.
 
-    :param str directory: a directory that holds the data files
-     if None the environment variable ENSIMPL_DIR will be used
-    :return: None
+    Args:
+        directory (str): a directory that holds the data files
+           if None the environment variable ENSIMPL_DIR will be used
     """
     ensimpl_dir = os.environ.get('ENSIMPL_DIR', None)
 
@@ -73,7 +79,8 @@ def init(directory=None):
         ensimpl_dir = directory
 
     if not ensimpl_dir:
-        print('ENSIMPL_DIR not configured in environment or directory was not supplied as an option')
+        print('ENSIMPL_DIR not configured in environment or directory '
+              'was not supplied as an option')
         sys.exit()
 
     if not os.path.isabs(ensimpl_dir):
