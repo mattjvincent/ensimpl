@@ -14,11 +14,11 @@ def karyotype_js():
         the Javascript response object
     """
     headers = {'Content-Type': 'application/javascript'}
-    return render_template('karyotype.js'), 200, headers
+    return render_template('navigator/karyotype.js'), 200, headers
 
 
 @navigator.route("/")
 def index():
     """Show the navigator page.
     """
-    return render_template('navigator.html')
+    return render_template('navigator/navigator.html')
