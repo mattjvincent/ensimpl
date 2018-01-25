@@ -1,5 +1,4 @@
 # -*- coding: utf_8 -*-
-
 import sqlite3
 
 import ensimpl.utils as utils
@@ -44,10 +43,6 @@ SELECT e.ensembl_id ensembl_id,
  WHERE 1 = 1
 '''
 
-SQL_WHERE_SPECIES = '''
- AND lower(e.species_id) = lower(:species_id)
-'''
-
 SQL_WHERE_ID = '''
   AND e.ensembl_id IN (SELECT distinct ensembl_id FROM {})
 '''
@@ -60,7 +55,7 @@ class GeneException(Exception):
     pass
 
 
-def get(ids=None, full=False, version=None, species_id=None):
+def get(version, species, ids=None, full=False):
     """Get genes matching the criteria.
 
     Args:
@@ -79,7 +74,7 @@ def get(ids=None, full=False, version=None, species_id=None):
         results = dict.fromkeys(ids)
 
     try:
-        conn = fetch_utils.connect_to_database(version)
+        conn = fetch_utils.connect_to_database(version, species)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -107,10 +102,6 @@ def get(ids=None, full=False, version=None, species_id=None):
 
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
                                        SQL_WHERE_ID.format(temp_table))
-
-        if species_id:
-            SQL_QUERY = '{} {}'.format(SQL_QUERY, SQL_WHERE_SPECIES)
-            variables = {'species_id': species_id}
 
         SQL_QUERY = '{} {}'.format(SQL_QUERY, SQL_ORDER_BY)
 

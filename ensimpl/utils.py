@@ -9,6 +9,9 @@ import os
 import random
 import string
 
+from operator import itemgetter as ig
+from functools import cmp_to_key
+
 from urllib.request import urlopen
 
 logging.basicConfig(format='[ENsimpl] [%(asctime)s] %(message)s',
@@ -18,8 +21,8 @@ logging.basicConfig(format='[ENsimpl] [%(asctime)s] %(message)s',
 class ReverseProxied(object):
     """
     Wrap the application in this middleware and configure the
-    front-end server (Apaccto add these headers, to let you quietly bind
-    this to a URL other than / and to an HTTP scheme that is 
+    front-end server to add these headers, to let you quietly bind
+    this to a URL other than / and to an HTTP scheme that is
     different than what is used locally.
 
     http://flask.pocoo.org/snippets/35/
@@ -258,3 +261,46 @@ def create_random_string(size=6, chars=string.ascii_uppercase + string.digits):
         a random genereated string
     """
     return ''.join(random.choice(chars) for _ in range(size))
+
+
+def cmp(a, b):
+    """Compare to values.
+
+    Args:
+        a:  first value
+        b: second value
+
+    Returns:
+        -1,    if a < b
+         0,    if a = b
+         1,    if a > b
+    """
+    return (a > b) - (a < b)
+
+
+def multikeysort(items, columns):
+    """Sort ``list`` of ``dict`` by mutiple keys.
+
+    Pulled from: https://stackoverflow.com/questions/1143671/python-sorting-list-of-dictionaries-by-multiple-keys
+
+    Args:
+        items (list): ``list`` of ``dict``
+        columns: the keys of the ``dict``
+
+    Returns:
+
+    """
+    comparers = [
+        ((ig(col[1:].strip()), -1) if col.startswith('-') else (
+        ig(col.strip()), 1))
+        for col in columns
+    ]
+
+    def comparer(left, right):
+        comparer_iter = (
+            cmp(fn(left), fn(right)) * mult
+            for fn, mult in comparers
+        )
+        return next((result for result in comparer_iter if result), 0)
+
+    return sorted(items, key=cmp_to_key(comparer))

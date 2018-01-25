@@ -1,6 +1,7 @@
-version: '2'
+version: '3'
 
 services:
+
   website:
     build: .
     command: >
@@ -9,6 +10,5 @@ services:
       - '.env'
     volumes:
       - '.:/app/ensimpl'
-      - '/Users/mvincent/work/ensimpl/data:/app/ensimpl/data'
     ports:
-      - '8000:8000'
+      - '9000:9000'

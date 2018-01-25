@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
-
-from collections import OrderedDict
 import glob
 import os
 import sys
 
+from ensimpl.utils import multikeysort
+
 ENSIMPL_DBS = None
-ENSIMPL_DB_DEFAULT = None
+ENSIMPL_DBS_DICT = None
 
 
-def get_ensimpl_db(version=None):
+def get_ensimpl_db(version, species):
     """
     Get the database based upon ``version``.
 
     Args:
         version (int): the version number
+        species (species): the species
 
     Returns:
         the database file
@@ -23,12 +24,9 @@ def get_ensimpl_db(version=None):
         ValueError if unable to find the ``version``
     """
     try:
-        if version:
-            return ENSIMPL_DBS[int(version)]
-
-        return ENSIMPL_DB_DEFAULT
+        return ENSIMPL_DBS_DICT['{}:{}'.format(int(version), species)]
     except Exception as e:
-        raise ValueError("Unable to find version: {}".format(version))
+        raise ValueError('Unable to find version "{}" and species "{}"'.format(version, species))
 
 
 def get_all_ensimpl_dbs(directory):
@@ -41,28 +39,26 @@ def get_all_ensimpl_dbs(directory):
     file_str = os.path.join(directory, 'ensimpl.*.db3')
     dbs = glob.glob(file_str)
 
-    db_vers = []
-    db_temp = {}
+    db_list = []
+    db_dict = {}
 
     # get the versions
     for db in dbs:
-        version = int(db.split(".")[-2])
-        db_vers.append(version)
-        db_temp[version] = db
+        version = int(db.split('.')[-3])
+        species = db.split('.')[-2]
+        combined_key = '{}:{}'.format(version, species)
+        val = {'version': version, 'species': species, 'db': db}
+        db_list.append(val)
+        db_dict[combined_key] = val
 
-    db_vers.sort()
+    all_sorted_dbs = multikeysort(db_list, ['-version', 'species'])
 
-    all_sorted_dbs = OrderedDict()
-
-    default = None
-    for version in db_vers:
-        all_sorted_dbs[version] = db_temp[version]
-        default = db_temp[version]
+    print(all_sorted_dbs)
 
     global ENSIMPL_DBS
     ENSIMPL_DBS = all_sorted_dbs
-    global ENSIMPL_DB_DEFAULT
-    ENSIMPL_DB_DEFAULT = default
+    global ENSIMPL_DBS_DICT
+    ENSIMPL_DBS_DICT = db_dict
 
 
 def init(directory=None):

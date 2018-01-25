@@ -4,7 +4,6 @@
 Todo:
     * better documentation
 """
-
 import ensimpl.utils as utils
 
 import sqlite3
@@ -268,7 +267,7 @@ def insert_gtpe(db, ref, gtep):
         utils.format_time(start, time.time())))
 
 
-def finalize(db, release):
+def finalize(db, ref):
     """Finalize the database.  Move everything to where it needs to be and
     create the necessary indices.
 
@@ -276,6 +275,7 @@ def finalize(db, release):
         db (str): the name of the database file
         ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
             contains information about the Ensembl reference
+        species_id (str): species identifier
      """
     start = time.time()
     conn = sqlite3.connect(db)
@@ -286,11 +286,9 @@ def finalize(db, release):
     sql_meta_insert = 'INSERT INTO meta_info VALUES (null, ?, ?, ?)'
 
     meta_data = []
-    for species_id, ensembl_reference in release.items():
-        meta_data.append(('version', ensembl_reference.version, species_id))
-        meta_data.append(('assembly', ensembl_reference.assembly, species_id))
-        meta_data.append(('assembly_patch',
-                          ensembl_reference.assembly_patch, species_id))
+    meta_data.append(('version', ref.version, ref.species_id))
+    meta_data.append(('assembly', ref.assembly, ref.species_id))
+    meta_data.append(('assembly_patch', ref.assembly_patch, ref.species_id))
 
     cursor.executemany(sql_meta_insert, meta_data)
 

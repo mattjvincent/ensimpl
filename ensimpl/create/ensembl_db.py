@@ -4,12 +4,10 @@
 Todo:
     * better documentation
 """
-
-from operator import itemgetter
+import pymysql
 
 import ensimpl.utils as utils
 
-import pymysql
 
 LOG = utils.get_logger()
 

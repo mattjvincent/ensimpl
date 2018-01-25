@@ -10,19 +10,30 @@
     <p class="lead">Basic example for Ensimpl API.</p>
 
     <div class="row">
-        <div class="col-lg-12">
-
+        <div class="col">
             <div class="form-group">
                 <label for="selectVersion">Version</label>
                 <select class="form-control" id="selectVersion">
-                    <option value="">Latest</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="selectSpecies">Species</label>
+                <select class="form-control" id="selectSpecies">
                 </select>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-lg-12">
+        <div class="col">
+            <label for="searchTerm">Term</label>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
             <div class="input-group">
                 <input type="text" id="searchTerm" class="form-control"
                        placeholder="Search for..." aria-label="Search for...">
@@ -34,14 +45,15 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-12">
+        <div class="col">
             <table class="table table-striped">
                 <thead>
                 <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Symbol</th>
-                    <th scope="col">Position</th>
-                    <th scope="col">Reason</th>
+                    <th class="" scope="col">ID</th>
+                    <th class="" scope="col">Symbol</th>
+                    <th class="d-none d-md-table-cell" scope="col">Position</th>
+                    <th class="d-none d-xl-table-cell" scope="col">Match Reason</th>
+                    <th class="d-none d-xl-table-cell" scope="col">Description</th>
                 </tr>
                 </thead>
                 <tbody id="tblBody">
@@ -58,16 +70,14 @@
 <script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
 
 <script>
-
     <!--
-
-
     /**
      * Perform Ensimpl search.
      */
     function findGene() {
         let searchVal = $("#searchTerm").val().trim().toUpperCase();
         let version = $("#selectVersion").val();
+        let species = $("#selectSpecies").val();
 
         $("#tblBody").html('');
 
@@ -75,7 +85,7 @@
             return;
         }
 
-        let options = {species: 'Mm',
+        let options = {species: species,
                        limit: 100};
 
         if (version !== "") {
@@ -89,8 +99,9 @@
                 $("#tblBody").append('<tr>' +
                                      '<td>' + elem.ensembl_gene_id + '</td>' +
                                      '<td>' + elem.symbol + '</td>' +
-                                     '<td>' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>' +
-                                     '<td>' + elem.match_reason + '</td>' +
+                                     '<td class="d-none d-md-table-cell">' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.match_reason + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.name + '</td>' +
                                      '</tr>');
             });
         });
@@ -101,9 +112,25 @@
         window.ENSIMPL = new ensimpl();
 
         window.ENSIMPL.versions(function(data) {
+            let versions = {};
+            let species = {};
+
            $.each(data, function(idx, elem) {
-               $("#selectVersion").append('<option value="' + elem['version'] + '">' + elem['version'] + '</option>')
+               versions[elem['version']] = +elem['version'];
+               species[elem['species']] = elem['species'];
            });
+
+           let vals = Object.values(versions);
+           vals.sort().reverse();
+
+           $.each(vals, function(key, val) {
+               $("#selectVersion").append('<option value="' + val + '">' + val + '</option>')
+           });
+
+           $.each(species, function(key, val) {
+               $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+           });
+
         });
 
         $('#searchTerm').keypress(function (evt) {
@@ -120,7 +147,6 @@
             console.log('findGene');
             return false;
         });
-
     });
     //-->
 </script>

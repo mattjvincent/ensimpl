@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-
-from collections import namedtuple
 import io
 import os
 import time
+
+from collections import namedtuple
 
 import ensimpl.utils as utils
 import ensimpl.create.ensembl_db as ensembl_db
@@ -14,8 +14,8 @@ DEFAULT_CONFIG = 'ftp://ftp.jax.org/churchill-lab/ensimpl/ensimpl.ensembl.conf'
 ENSEMBL_FIELDS = ['version', 'release_date', 'assembly', 'assembly_patch',
                   'species_id', 'species_name', 'db', 'server', 'port',
                   'user_id', 'password']
-EnsemblReference = namedtuple('EnsemblReference', ENSEMBL_FIELDS)
 
+EnsemblReference = namedtuple('EnsemblReference', ENSEMBL_FIELDS)
 
 EXTERNAL_IDS = {'HGNC': 'HGNC',
                 'EntrezGene': 'EntrezGene',
@@ -74,11 +74,12 @@ def parse_config(resource_name):
     return all_releases
 
 
-def create(ensembl, directory, resource):
+def create(ensembl, species, directory, resource):
     """Create ensimpl database(s).
 
     Args:
         ensembl (list): all Ensembl versions to create, None for all
+        species (list): all species to create, None for all
         directory: directory to use
         resource: configuration to parse for Ensembl information
     """
@@ -113,48 +114,51 @@ def create(ensembl, directory, resource):
                       ' {}'.format(', '.join(all_releases)))
             raise Exception("Unable to create databases")
 
-    for release_version, release_value in sorted(releases.items()):
+    for release_version, release_value in sorted(releases.items(), reverse=True):
         if ensembl and release_version not in ensembl:
             continue
 
-        LOG.warn('Generating ensimpl database for '
-                 'Ensembl version: {}'.format(release_version))
-
-        ensimpl_file = 'ensimpl.{}.db3'.format(release_version)
-        ensimpl_file = os.path.join(directory, ensimpl_file)
-        utils.delete_file(ensimpl_file)
-
-        LOG.info('Creating: {}'.format(ensimpl_file))
-        ensimpl_db.initialize(ensimpl_file)
-
         for species_id, ensembl_reference in sorted(release_value.items()):
-            LOG.info('Extracting chromosomes...')
-            chromosomes_karyotypes = \
-                ensembl_db.extract_chromosomes_karyotypes(ensembl_reference)
+            if not species or (species_id in species):
+                LOG.warn('Generating ensimpl database for '
+                         'Ensembl version: {}'.format(release_version))
 
-            LOG.info('Extracting genes...')
-            genes = ensembl_db.extract_ensembl_genes(ensembl_reference)
+                ensimpl_file = 'ensimpl.{}.{}.db3'.format(release_version, species_id)
+                ensimpl_file = os.path.join(directory, ensimpl_file)
+                utils.delete_file(ensimpl_file)
 
-            LOG.info('Extracting synonyms...')
-            synonyms = ensembl_db.extract_synonyms(ensembl_reference)
+                LOG.info('Creating: {}'.format(ensimpl_file))
 
-            LOG.info('Extracting transcript, protein, and exon information...')
-            gtep = ensembl_db.extract_ensembl_gtpe(ensembl_reference)
+                ensimpl_db.initialize(ensimpl_file)
 
-            LOG.info('Inserting chromsomes..')
-            ensimpl_db.insert_chromosomes_karyotypes(ensimpl_file,
-                                                     ensembl_reference,
-                                                     chromosomes_karyotypes)
+                LOG.info('Extracting chromosomes...')
+                chromosomes_karyotypes = \
+                    ensembl_db.extract_chromosomes_karyotypes(ensembl_reference)
+    
+                LOG.info('Extracting genes...')
+                genes = ensembl_db.extract_ensembl_genes(ensembl_reference)
+    
+                LOG.info('Extracting synonyms...')
+                synonyms = ensembl_db.extract_synonyms(ensembl_reference)
+    
+                LOG.info('Extracting transcript, protein, and exon information...')
+                gtep = ensembl_db.extract_ensembl_gtpe(ensembl_reference)
+    
+                LOG.info('Inserting chromsomes..')
+                ensimpl_db.insert_chromosomes_karyotypes(ensimpl_file,
+                                                         ensembl_reference,
+                                                         chromosomes_karyotypes)
+    
+                LOG.info('Inserting genes..')
+                ensimpl_db.insert_genes(ensimpl_file, ensembl_reference, genes,
+                                        synonyms)
+    
+                LOG.info('Inserting transcript, protein, and exon information...')
+                ensimpl_db.insert_gtpe(ensimpl_file, ensembl_reference, gtep)
+    
+                LOG.info('Finalizing...')
+                ensimpl_db.finalize(ensimpl_file, ensembl_reference)
 
-            LOG.info('Inserting genes..')
-            ensimpl_db.insert_genes(ensimpl_file, ensembl_reference, genes,
-                                    synonyms)
-
-            LOG.info('Inserting transcript, protein, and exon information...')
-            ensimpl_db.insert_gtpe(ensimpl_file, ensembl_reference, gtep)
-
-        LOG.info('Finalizing...')
-        ensimpl_db.finalize(ensimpl_file, release_value)
-        LOG.info('DONE')
+    LOG.info('DONE')
 
 

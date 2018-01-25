@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import time
-
 import click
 import json
+import time
+
 from tabulate import tabulate
 
 from ensimpl.utils import configure_logging, format_time, get_logger
@@ -40,7 +40,8 @@ def cli(display, ids, species, ver, verbose):
                     ensembl_ids.append(row.strip().split()[0])
 
     tstart = time.time()
-    result = get_genes.get(ensembl_ids, True, species, ver)
+
+    result = get_genes.get(ver, species, ensembl_ids, True)
     tend = time.time()
 
     headers = ['ID', 'VERSION', 'SPECIES', 'SYMBOL', 'NAME', 'SYNONYMS',

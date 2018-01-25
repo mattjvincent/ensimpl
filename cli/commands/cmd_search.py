@@ -31,7 +31,7 @@ def cli(term, ver, exact, display, max, species, verbose):
 
     try:
         tstart = time.time()
-        result = search_ensimpl.search(term, ver, species, exact, maximum)
+        result = search_ensimpl.search(term, ver, species, exact=exact, limit=maximum)
         tend = time.time()
 
         LOG.debug("Num Results: {}".format(result.num_results))

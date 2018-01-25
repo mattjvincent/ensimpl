@@ -2,6 +2,9 @@ FROM python:3.6-slim
 LABEL maintainer="Matthew Vincent <mattjvincent@gmail.com>" \
 	  version="1.0"
 
+RUN apt-get update && \
+    apt-get -y install gcc
+
 ENV INSTALL_PATH /app/ensimpl
 RUN mkdir -p $INSTALL_PATH
 

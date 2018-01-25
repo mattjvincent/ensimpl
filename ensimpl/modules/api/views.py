@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from functools import wraps
 
 from flask import Blueprint
@@ -57,8 +56,9 @@ def versions():
     """
     version_info = []
 
-    for (k, v) in db_config.ENSIMPL_DBS.items():
-        version_info.append(get.meta(k))
+    for it in db_config.ENSIMPL_DBS:
+        meta = get.meta(it['version'], it['species'])
+        version_info.append(meta)
 
     return jsonify(version_info)
 
@@ -76,17 +76,21 @@ def chromosomes():
     version = request.values.get('version', None)
     species = request.values.get('species', None)
 
-    ret = {'version': None, 'species': {}}
+    ret = {'version': None, 'species': None, 'chromosomes': None}
 
     try:
+        if not version:
+            raise ValueError('No version specified')
+
+        if not species:
+            raise ValueError('No species specified')
+
         meta = get.meta(version)
         ret['version'] = meta['version']
+        ret['species'] = meta['species'][species]
 
         all_chromosomes = get.chromosomes(version, species)
-
-        for (species_id, chrom_data) in all_chromosomes.items():
-            ret['species'][species_id] = meta['species'][species_id]
-            ret['species'][species_id]['chromosomes'] = chrom_data
+        ret['chromosomes'] = all_chromosomes
 
     except Exception as e:
         response = jsonify(message=str(e))
@@ -109,17 +113,21 @@ def karyotypes():
     version = request.values.get('version', None)
     species = request.values.get('species', None)
 
-    ret = {'version': None, 'species': {}}
+    ret = {'version': None, 'chromosomes': {}}
 
     try:
-        meta = get.meta(version)
+        if not version:
+            raise ValueError('No version specified')
+
+        if not species:
+            raise ValueError('No species specified')
+
+        meta = get.meta(version, species)
         ret['version'] = meta['version']
+        ret['species'] = meta['species']
 
         all_karyotypes = get.karyotypes(version, species)
-
-        for (species_id, karyotype_data) in all_karyotypes.items():
-            ret['species'][species_id] = meta['species'][species_id]
-            ret['species'][species_id]['chromosomes'] = karyotype_data
+        ret['chromosomes'] = all_karyotypes
 
     except Exception as e:
         response = jsonify(message=str(e))
@@ -140,15 +148,25 @@ def gene():
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
     version = request.values.get('version', None)
+    species = request.values.get('species', None)
     id = request.values.get('id', None)
 
     ret = {'gene': None}
 
     try:
+        if not version:
+            raise ValueError('No version specified')
+
+        if not species:
+            raise ValueError('No species specified')
+
+        if not id:
+            raise ValueError('No id specified')
+
         results = genes_ensimpl.get(ids=[id],
                                     full=True,
                                     version=version,
-                                    species_id=None)
+                                    species_id=species)
 
         if len(results) == 0:
             current_app.logger.info("No results found")
@@ -187,6 +205,15 @@ def genes():
     ret = {'genes': None}
 
     try:
+        if not version:
+            raise ValueError('No version specified')
+
+        if not species:
+            raise ValueError('No species specified')
+
+        if not ids:
+            raise ValueError('No ids specified')
+
         results = genes_ensimpl.get(ids=ids,
                                     full=full,
                                     version=version,
@@ -235,6 +262,12 @@ def search():
                                                  'num_matches': 0,
                                                  'matches': None}}
     try:
+        if not version:
+            raise ValueError('No version specified')
+
+        if not species:
+            raise ValueError('No species specified')
+
         results = search_ensimpl.search(term=term,
                                         version=version,
                                         species_id=species,

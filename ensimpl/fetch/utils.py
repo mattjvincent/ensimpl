@@ -1,5 +1,4 @@
 # -*- coding: utf_8 -*-
-
 from collections import OrderedDict
 
 import re
@@ -66,7 +65,7 @@ def dictify_row(cursor, row):
     return d
 
 
-def connect_to_database(version=None):
+def connect_to_database(version, species_id):
     """Connect to the ensimpl database
 
     Args:
@@ -76,7 +75,7 @@ def connect_to_database(version=None):
         a connection to the database
     """
     try:
-        database = db_config.get_ensimpl_db(version)
+        database = db_config.get_ensimpl_db(version, species_id)['db']
         return sqlite3.connect(database)
     except Exception as e:
         LOG.error('Error connecting to database: {}'.format(str(e)))

@@ -1,5 +1,4 @@
 # -*- coding: utf_8 -*-
-
 import sqlite3
 import re
 
@@ -26,34 +25,6 @@ GROUP BY l.ensembl_gene_id
 ORDER BY match_description - length(match_description) DESC, g.symbol ASC
 '''
 
-SQL_TERM_EXACT_MM = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
-  FROM ensembl_genes g,
-       ensembl_genes_lookup l,
-       search_ranking s
-WHERE g.ensembl_id = l.ensembl_gene_id
-  AND l.ranking_id = s.ranking_id
-  AND l.lookup_value = :term
-  AND l.species_id = 'mm'
-GROUP BY l.ensembl_gene_id
-ORDER BY match_description - length(match_description) DESC, g.symbol ASC
-'''
-
-SQL_TERM_EXACT_HS = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
-  FROM ensembl_genes g,
-       ensembl_genes_lookup l,
-       search_ranking s
-WHERE g.ensembl_id = l.ensembl_gene_id
-  AND l.ranking_id = s.ranking_id
-  AND l.lookup_value = :term
-  AND l.species_id = 'hs'
-GROUP BY l.ensembl_gene_id
-ORDER BY match_description - length(match_description) DESC, g.symbol ASC
-'''
-
 SQL_TERM_LIKE = '''
 SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
        AS match_description, l.ensembl_gene_id, g.*
@@ -65,38 +36,6 @@ WHERE g.ensembl_id = l.ensembl_gene_id
   AND l.ranking_id = s.ranking_id
   AND es.ensembl_genes_lookup_key = l.ensembl_genes_lookup_key
   AND es.lookup_value MATCH :term
-GROUP BY l.ensembl_gene_id
-ORDER BY match_description - length(match_description) DESC, g.symbol ASC
-'''
-
-SQL_TERM_LIKE_MM = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
-  FROM ensembl_genes g,
-       ensembl_genes_lookup l,
-       ensembl_search es,
-       search_ranking s
-WHERE g.ensembl_id = l.ensembl_gene_id
-  AND l.ranking_id = s.ranking_id
-  AND es.ensembl_genes_lookup_key = l.ensembl_genes_lookup_key
-  AND es.lookup_value MATCH :term
-  AND l.species_id = 'mm'
-GROUP BY l.ensembl_gene_id
-ORDER BY match_description - length(match_description) DESC, g.symbol ASC
-'''
-
-SQL_TERM_LIKE_HS = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value)
-       AS match_description, l.ensembl_gene_id, g.*
-  FROM ensembl_genes g,
-       ensembl_genes_lookup l,
-       ensembl_search es,
-       search_ranking s
-WHERE g.ensembl_id = l.ensembl_gene_id
-  AND l.ranking_id = s.ranking_id
-  AND es.ensembl_genes_lookup_key = l.ensembl_genes_lookup_key
-  AND es.lookup_value MATCH :term
-  AND l.species_id = 'hs'
 GROUP BY l.ensembl_gene_id
 ORDER BY match_description - length(match_description) DESC, g.symbol ASC
 '''
@@ -117,40 +56,6 @@ GROUP BY l.ensembl_gene_id
 ORDER BY match_description - length(match_description) DESC, g.symbol ASC
 '''
 
-SQL_ID_MM = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
-  FROM ensembl_genes g,
-       ensembl_genes_lookup l,
-       ensembl_search es,
-       search_ranking s
-WHERE g.ensembl_id = l.ensembl_gene_id
-  AND l.ranking_id = s.ranking_id
-  AND es.ensembl_genes_lookup_key = l.ensembl_genes_lookup_key
-  AND l.species_id = 'mm'
-  AND l.ranking_id in ('EG', 'ET', 'EE', 'EP', 'ZG', 'MI', 'UG', 'HG')
-  AND es.lookup_value MATCH :term
-GROUP BY l.ensembl_gene_id
-ORDER BY match_description - length(match_description) DESC, g.symbol ASC
-'''
-
-SQL_ID_HS = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
-  FROM ensembl_genes g,
-       ensembl_genes_lookup l,
-       ensembl_search es,
-       search_ranking s
-WHERE g.ensembl_id = l.ensembl_gene_id
-  AND l.ranking_id = s.ranking_id
-  AND es.ensembl_genes_lookup_key = l.ensembl_genes_lookup_key
-  AND l.species_id = 'hs'
-  AND l.ranking_id in ('EG', 'ET', 'EE', 'EP', 'ZG', 'MI', 'UG', 'HG')
-  AND es.lookup_value MATCH :term
-GROUP BY l.ensembl_gene_id
-ORDER BY match_description - length(match_description) DESC, g.symbol ASC
-'''
-
 SQL_REGION = '''
 SELECT *
   FROM ensembl_genes e
@@ -162,44 +67,11 @@ SELECT *
        AS int), e.start_position, e.end_position
 '''
 
-SQL_REGION_MM = '''
-SELECT *
-  FROM ensembl_genes e
- WHERE e.chromosome = :chromosome
-   AND e.start_position <= :end_position
-   AND e.end_position >= :start_position
-   AND e.species_id = 'mm'
- ORDER BY cast(
-       replace(replace(replace(e.chromosome,'X','50'),'Y','51'),'MT','51') 
-       AS int), e.start_position, e.end_position
-'''
-
-SQL_REGION_HS = '''
-SELECT *
-  FROM ensembl_genes e
- WHERE e.chromosome = :chromosome
-   AND e.start_position <= :end_position
-   AND e.end_position >= :start_position
-   AND e.species_id = 'hs'
- ORDER BY cast(
-       replace(replace(replace(e.chromosome,'X','50'),'Y','51'),'MT','51') 
-       AS int), e.start_position, e.end_position
-'''
-
-
 QUERIES = {}
 QUERIES['SQL_TERM_EXACT'] = SQL_TERM_EXACT
-QUERIES['SQL_TERM_EXACT_MM'] = SQL_TERM_EXACT_MM
-QUERIES['SQL_TERM_EXACT_HS'] = SQL_TERM_EXACT_HS
 QUERIES['SQL_TERM_LIKE'] = SQL_TERM_LIKE
-QUERIES['SQL_TERM_LIKE_MM'] = SQL_TERM_LIKE_MM
-QUERIES['SQL_TERM_LIKE_HS'] = SQL_TERM_LIKE_HS
 QUERIES['SQL_ID'] = SQL_ID
-QUERIES['SQL_ID_MM'] = SQL_ID_MM
-QUERIES['SQL_ID_HS'] = SQL_ID_HS
 QUERIES['SQL_REGION'] = SQL_REGION
-QUERIES['SQL_REGION_MM'] = SQL_REGION_MM
-QUERIES['SQL_REGION_HS'] = SQL_REGION_HS
 
 
 class SearchException(Exception):
@@ -210,28 +82,28 @@ class SearchException(Exception):
 class Query:
     """Encapsulate query objects.
     """
-    def __init__(self, term=None, species_id=None, exact=False):
+    def __init__(self, term=None, exact=False):
         """Initialization.
 
         Args:
             term (str): the query term
-            species_id (str): the species id
             exact (bool): True for exact match
         """
         self.term = term
-        self.species_id = species_id
         self.exact = exact
         self.region = None
         self.query = None
+        print('term=', self.term)
+        print('exact=', self.exact)
+        print('region=', self.region)
+        print('query=', self.query)
 
     def __str__(self):
         """Return a string representation of this query"""
-        return 'Query: {}\nTerm: {}\nSpecies: {}\n' + \
-               'Exact: {}\nRegion: {}'.format(self.query, self.term,
-                                              self.species_id, self.exact,
-                                              self.region)
+        ret_str = 'Query Object: term="{}", "region="{}", exact="{}", query="{}"'.format(self.term, self.region, self.exact, self.query)
+        return ret_str
 
-    def get_paramaters(self):
+    def get_parameters(self):
         """Get the query parameters.
 
         Returns:
@@ -285,12 +157,11 @@ class Result:
         self.num_results = num_results
 
 
-def get_query(term, species_id=None, exact=True):
+def get_query(term, exact=True):
     """Get query based upon parameters
 
     Args:
         term: the query object
-        species_id: either 'Hs', 'Mm', or None
         exact: True for exact matches
 
     Returns:
@@ -307,30 +178,22 @@ def get_query(term, species_id=None, exact=True):
     if len(valid_term) <= 0:
         raise ValueError('Empty term')
 
-    if species_id and species_id.lower() not in ('hs', 'mm'):
-        raise ValueError('Invalid species')
-
-    query = Query(term, species_id, exact)
-
-    if species_id:
-        species_id = '_' + species_id.upper()
-    else:
-        species_id = ''
+    query = Query(term, exact)
 
     if REGEX_ENSEMBL_MOUSE_ID.match(valid_term):
-        query.query = QUERIES['SQL_ID' + species_id]
+        query.query = QUERIES['SQL_ID']
     elif REGEX_ENSEMBL_HUMAN_ID.match(valid_term):
-        query.query = QUERIES['SQL_ID' + species_id]
+        query.query = QUERIES['SQL_ID']
     elif REGEX_MGI_ID.match(valid_term):
-        query.query = QUERIES['SQL_ID' + species_id]
+        query.query = QUERIES['SQL_ID']
     elif REGEX_REGION.match(valid_term):
-        query.query = QUERIES['SQL_REGION' + species_id]
+        query.query = QUERIES['SQL_REGION']
         query.region = fetch_utils.str_to_region(term)
     else:
         if exact:
-            query.query = QUERIES['SQL_TERM_EXACT' + species_id]
+            query.query = QUERIES['SQL_TERM_EXACT']
         else:
-            query.query = QUERIES['SQL_TERM_LIKE' + species_id]
+            query.query = QUERIES['SQL_TERM_LIKE']
 
             if valid_term[-1] != '*':
                 valid_term = valid_term + '*'
@@ -340,11 +203,12 @@ def get_query(term, species_id=None, exact=True):
     return query
 
 
-def execute_query(query, version=None, limit=None):
+def execute_query(query, version, species_id, limit=None):
     """Execute the SQL query.
 
     Args:
         query (:obj:`Query`): the query
+        species_id (str): the species identifier
         version (int): database version
         limit (int): maximum number of items to return
 
@@ -361,7 +225,7 @@ def execute_query(query, version=None, limit=None):
     ilimit = fetch_utils.nvli(limit, -1)
 
     try:
-        conn = fetch_utils.connect_to_database(version)
+        conn = fetch_utils.connect_to_database(version, species_id)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -369,7 +233,7 @@ def execute_query(query, version=None, limit=None):
         if query.region:
             gene_id = 'ensembl_id'
 
-        for row in cursor.execute(query.query, query.get_paramaters()):
+        for row in cursor.execute(query.query, query.get_parameters()):
             match = Match()
 
             match.ensembl_gene_id = row[gene_id]
@@ -429,15 +293,15 @@ def execute_query(query, version=None, limit=None):
     return Result(query, matches, num_matches)
 
 
-def search(term, version=None, species_id=None, exact=True, limit=None):
+def search(term, version, species_id, exact=True, limit=None):
     """Perform the search.
 
     Args:
         term (str): the term to look for
         version (int): Ensembl version or None for latest
-        species_id (str): 'hs' or 'mm'
+        species_id (str): the species identifier
         exact (bool): True for exact match
-        limit (int): number to retrun, None for all
+        limit (int): number to return, None for all
 
     Returns:
         :obj:`Result`: the result of the query
@@ -449,11 +313,11 @@ def search(term, version=None, species_id=None, exact=True, limit=None):
     LOG.debug('limit={}'.format(limit))
 
     try:
-        query = get_query(term, species_id, exact)
+        query = get_query(term, exact)
 
         LOG.debug('QUERY={}'.format(query))
 
-        result = execute_query(query, version, limit)
+        result = execute_query(query, version, species_id, limit)
 
         LOG.debug('# matches: {}'.format(len(result.matches)))
 

@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 import os
 
-from flask import Flask, render_template
+from flask import Flask
+from flask import render_template
 
 from ensimpl.extensions import debug_toolbar
 from ensimpl.modules.api.views import api

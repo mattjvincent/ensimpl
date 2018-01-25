@@ -213,11 +213,11 @@
         }
 
         d3.json(this.settings.url, function (e, data) {
-            console.log(data.species['mm'].chromosomes);
+            console.log(data.chromosomes);
             let chroms = [];
-            for (c in data.species['mm'].chromosomes) {
+            for (c in data.chromosomes) {
                 if (c !== 'MT') {
-                    chroms.push(data.species['mm'].chromosomes[c]);
+                    chroms.push(data.chromosomes[c]);
                 }
             }
 

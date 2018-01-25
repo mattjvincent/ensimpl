@@ -36,19 +36,30 @@
     <p class="lead"></p>
 
     <div class="row">
-        <div class="col-sm-12">
-
+        <div class="col">
             <div class="form-group">
                 <label for="selectVersion">Version</label>
                 <select class="form-control" id="selectVersion">
-                    <option value="">Latest</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="selectSpecies">Species</label>
+                <select class="form-control" id="selectSpecies">
                 </select>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-sm-12">
+        <div class="col">
+            <label for="searchTerm">Term</label>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
             <div class="input-group">
                 <input type="text" id="searchTerm" class="form-control"
                        placeholder="Search for..." aria-label="Search for...">
@@ -60,13 +71,13 @@
     </div>
 
     <div class="row">
-        <div class="col-sm-12">
+        <div class="col">
             <div id="chromosomeKaryotype"></div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-sm-12">
+        <div class="col">
             <div id="searchStatus"></div>
             <table class="table table-striped">
                 <thead>
@@ -163,20 +174,46 @@
         console.log($("#chromosomeKaryotype").width() - 100, $("#chromosomeKaryotype").width() / 3);
 
         window.ENSIMPL = new ensimpl();
-        window.KARYOTYPE = new karyotype({'width': $("#chromosomeKaryotype").width() - 100,
-                                          'height': $("#chromosomeKaryotype").width() / 3,
-                                          'id':'chromosomeKaryotype',
-                                          'onHover':onHover,
-                                          'onHoverStop': onHoverStop,
-                                          'showPositionOnHover': false,
-                                          'onSelection':onSelected,
-                                          //'onSelecting':onSelecting,
-                                          'url':"{{ url_for('api.karyotypes', _external=True) }}?species=mm" });
 
         window.ENSIMPL.versions(function(data) {
-           $.each(data, function(idx, elem) {
-               $("#selectVersion").append('<option value="' + elem['version'] + '">' + elem['version'] + '</option>')
-           });
+            let versions = {};
+            let species = {};
+
+
+
+            $.each(data, function(idx, elem) {
+                versions[elem['version']] = +elem['version'];
+                species[elem['species']] = elem['species'];
+            });
+
+            let vals = Object.values(versions);
+            vals.sort().reverse();
+
+            $.each(vals, function(key, val) {
+                $("#selectVersion").append('<option value="' + val + '">' + val + '</option>')
+            });
+
+            $.each(species, function(key, val) {
+                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+            });
+
+
+
+            let selectedVersion = $("#selectVersion").val();
+            let selectedSpecies = $("#selectSpecies").val();
+
+            window.KARYOTYPE = new karyotype({'width': $("#chromosomeKaryotype").width() - 100,
+                                              'height': $("#chromosomeKaryotype").width() / 3,
+                                              'id':'chromosomeKaryotype',
+                                              'onHover':onHover,
+                                              'onHoverStop': onHoverStop,
+                                              'showPositionOnHover': false,
+                                              'onSelection':onSelected,
+                                              //'onSelecting':onSelecting,
+                                              'url':"{{ url_for('api.karyotypes', _external=True) }}?species=" + selectedSpecies + "&version=" + selectedVersion
+            });
+
+
         });
 
         $('#searchTerm').keypress(function (evt) {
@@ -196,10 +233,10 @@
 
         $("#selectVersion").on("change", function (evt) {
            let version = $("#selectVersion").val();
+           let species = $("#selectSpecies").val();
            $("#chromosomeKaryotype").html("");
-           window.KARYOTYPE.setURL("{{ url_for('api.karyotypes', _external=True) }}?species=mm&version=" + version);
+           window.KARYOTYPE.setURL("{{ url_for('api.karyotypes', _external=True) }}?species=" + species + "&version=" + version);
         });
-
     });
     //-->
 </script>
