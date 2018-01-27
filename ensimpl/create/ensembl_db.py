@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """This module is specific to Ensembl db operations.
-
-Todo:
-    * better documentation
 """
 import pymysql
 
@@ -225,13 +222,13 @@ SELECT DISTINCT sr.name, sr.length, k.seq_region_start, k.seq_region_end, k.band
 
 
 def _get_sql_select_gene(version):
-    """Retrieve the proper SQL statement based upon the Ensembl version
+    """Retrieve the proper SQL statement based upon the Ensembl `version`.
 
     Args:
-        version (int): Ensembl version
+        version (int): Ensembl version.
 
     Returns:
-        str: the SQL statement
+        str: The SQL statement.
     """
     if int(version) < 65:
         return SQL_ENSEMBL_48_SELECT_GENE + SQL_ENSEMBL_48_SELECT_GENE_ORDER_BY
@@ -240,13 +237,13 @@ def _get_sql_select_gene(version):
 
 
 def _get_sql_select_gtpe(version):
-    """Retrieve the proper SQL statement based upon the Ensembl version
+    """Retrieve the proper SQL statement based upon the Ensembl `version`.
 
     Args:
-        version (int): Ensembl version
+        version (int): Ensembl version.
 
     Returns:
-        str: the SQL statement
+        str: The SQL statement.
     """
     if int(version) < 65:
         return SQL_ENSEMBL_48_SELECT_GTPE + SQL_ENSEMBL_48_SELECT_GTPE_ORDER_BY
@@ -255,14 +252,14 @@ def _get_sql_select_gtpe(version):
 
 
 def connect_to_database(ref):
-    """Connect to Ensembl.
+    """Connect to Ensembl database.
 
     Args:
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
+        ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
 
     Returns:
-        a connection to the database
+        :class:`pymysql.connections.Connection`: A connection to the database.
     """
     try:
         LOG.debug('Connecting to {} ...'.format(ref.server))
@@ -283,12 +280,21 @@ def connect_to_database(ref):
 def extract_chromosomes_karyotypes(ref):
     """Extract the chromosomes and karyotypes from Ensembl.
 
+    Each ``dict`` in the ``list`` has the following keys:
+
+    * ``name`` - chromosome name
+    * ``length`` - chromosome length
+    * ``seq_region_start`` - karyotype start
+    * ``seq_region_end`` - karyotype end
+    * ``band`` - karyotype band
+    * ``stain`` - karyotype stain
+
     Args:
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
+        ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
 
     Returns:
-        list: a ``list`` of ``dict``, name and length
+        list: A ``list`` of ``dicts``.
     """
     chromosomes = []
 
@@ -315,11 +321,12 @@ def extract_synonyms(ref):
     """Extract the synonyms from Ensembl.
 
     Args:
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
+        ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
 
     Returns:
-        dict: the keys are the xref_id and values are a list of synonyms
+        dict: The keys are the xref_id and the values are a ``list`` of
+            synonyms.
     """
     synonyms = {}
 
@@ -357,19 +364,27 @@ def extract_synonyms(ref):
 def extract_ensembl_genes(ref):
     """Extract the gene information from Ensembl.
 
+    Each gene returned is a ``dict`` with the following keys:
+
+    * ``ensembl_id`` - Ensembl ID
+    * ``ensembl_id_version`` - version of Ensembl ID
+    * ``seq_id`` - chromosome
+    * ``seq_region_start`` - start in base pairs
+    * ``seq_region_end`` - end in base pairs
+    * ``seq_region_strand`` - strand
+    * ``symbol`` - Ensemble Gene symbol
+    * ``description`` - description of gene
+    * ``ids`` - ``dict`` of ids with the following keys:
+        * ``xref_id`` - cross reference id from Ensembl
+        * ``external_id`` - id of gene in external database
+        * ``db_name`` - external database name
+
     Args:
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
+        ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
 
     Returns:
-        dict: gene information with the Ensembl ID being the key
-
-             each gene is another ``dict`` with the following keys
-
-             'ensembl_id', 'ensembl_id_version', 'seq_id',
-             'seq_region_start', 'seq_region_end', 'seq_region_strand',
-             'symbol', 'description', 'ids'
-
+        dict: Gene information with the Ensembl ID being the key.
     """
     gene_items = ['ensembl_id', 'ensembl_id_version', 'seq_id',
                   'seq_region_start', 'seq_region_end', 'seq_region_strand',
@@ -416,11 +431,13 @@ def extract_ensembl_gtpe(ref):
     """Extract the gene, transcript, protein, exon information from Ensembl.
 
     Args:
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
+        ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
 
     Returns:
-        list: a list of the gene, transcript, protein, exon information
+        list: A ``list`` of the gene, transcript, protein, exon information.
+           Look at :data:`SQL_ENSEMBL_65_SELECT_GTPE` and
+           :data:`SQL_ENSEMBL_48_SELECT_GTPE` for the information extracted.
     """
     gtep = []
     genes = {}

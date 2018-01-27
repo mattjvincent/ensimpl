@@ -50,23 +50,56 @@ SQL_WHERE_ID = '''
 SQL_ORDER_BY = ' ORDER BY e.ensembl_id'
 
 
-class GeneException(Exception):
-    """Gene exception class."""
-    pass
-
-
 def get(version, species, ids=None, full=False):
-    """Get genes matching the criteria.
+    """Get genes matching the ids.
+
+        Each match object will contain:
+
+        =================  =======  ============================================
+        Element            Type     Description
+        =================  =======  ============================================
+        ensembl_id         string   Ensembl gene identifier
+        ensembl_version    integer  version of the identifier
+        species_id         string   species identifier: 'Mm', 'Hs', etc
+        chromosome         string   the chromosome
+        start              integer  start position in base pairs
+        end                integer  end position in base pairs
+        strand             string   '+' or '-'
+        gene_name          string   name of the gene
+        gene_symbol        string   gene symbol
+        gene_synonyms      list     list of strings
+        gene_external_ids  list     each having keys of 'db' and 'db_id
+        =================  =======  ============================================
+
+        If ``full`` is ``True``, each match will also contain the following:
+
+        ``transcripts``, with each item containing:
+
+        =================  =======  ============================================
+        Element            Type     Description
+        =================  =======  ============================================
+        id                 string   Ensembl gene identifier
+        ensembl_version    integer  version of the identifier
+        symbol             string   transcript symbol
+        start              integer  start position in base pairs
+        end                integer  end position in base pairs
+        exons              list     dict of: number,id,start,end,ensembl_version
+        protein            dict     id, start, end, ensembl_version
+        =================  =======  ============================================
 
     Args:
-        ids (list): a `list` of Ensembl idenfiers
-        version (int): the version (None) for most recent
+        version (int): The Ensembl version number.
+        species (str): The Ensembl species identifier.
+        ids (list): A ``list`` of ``str`` which are Ensembl identifiers.
+        full (bool): True to retrieve all information including transcripts,
+            exons, proteins.  False will only retrieve the top level gene
+            information.
 
     Returns:
-        ``list`` of matching gene information
+        list: A ``list`` of ``dicts`` representing genes.
 
     Raises:
-        GeneException: when sqlite error or other error occurs
+        Exception: When sqlite error or other error occurs.
     """
     results = {}
 
@@ -228,14 +261,9 @@ def get(version, species, ids=None, full=False):
         conn.close()
 
     except sqlite3.Error as e:
-        raise GeneException(e)
+        raise Exception(e)
 
     return results
-
-
-
-
-
 
 
 

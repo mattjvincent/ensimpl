@@ -19,41 +19,38 @@ logging.basicConfig(format='[ENsimpl] [%(asctime)s] %(message)s',
 
 
 class ReverseProxied(object):
-    """
-    Wrap the application in this middleware and configure the
-    front-end server to add these headers, to let you quietly bind
-    this to a URL other than / and to an HTTP scheme that is
-    different than what is used locally.
+    """Wrap the application in this middleware and configure the front-end
+    server to add these headers, to let you quietly bind this to a URL other
+    than / and to an HTTP scheme that is different than what is used locally.
 
-    http://flask.pocoo.org/snippets/35/
+    Taken from: http://flask.pocoo.org/snippets/35/
 
-    In apache:
+    Example:
+        In Apache::
 
-    <Proxy http://server:port>
-        Header add X_FORWADED_PATH "/myprefix"
-        RequestHeader set X_FORWARDED_PATH "/myprefix"
-    </Proxy>
+            <Proxy http://server:port>
+                Header add X_FORWADED_PATH "/myprefix"
+                RequestHeader set X_FORWARDED_PATH "/myprefix"
+            </Proxy>
 
-    ProxyPass /myprefix http://server:port disablereuse=On
-    ProxyPassReverse /myprefix http://server:port
+            ProxyPass /myprefix http://server:port disablereuse=On
+            ProxyPassReverse /myprefix http://server:port
 
-    In nginx:
+        In nginx::
 
-    location /myprefix {
-        proxy_pass http://192.168.0.1:5001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Scheme $scheme;
-        proxy_set_header X-Script-Name /myprefix;
-        }
-
+            location /myprefix {
+                proxy_pass http://192.168.0.1:5001;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Scheme $scheme;
+                proxy_set_header X-Script-Name /myprefix;
+            }
     """
     def __init__(self, app):
-        """
-        Constructor.
+        """Constructor.
 
         Args:
-            app: the application
+            app: The wsgi environment.
         """
         self.app = app
 
@@ -62,11 +59,12 @@ class ReverseProxied(object):
         Middleware call.
 
         Args:
-            environ (dict): application environment
-            start_response (Response.start_response): response method
+            environ (dict): The WSGI environment.
+                See :func:`flask.Flask.wsgi_app`
+            start_response: The response method.
 
         Returns:
-            application
+            :class:`flask.Flask` application.
         """
         script_name = environ.get('HTTP_X_FORWARDED_PATH', '')
 
@@ -88,20 +86,27 @@ def get_logger():
     """Get the logger.
 
     Returns:
-        logger: the logging object
+        logging.Logger: The logging object.
     """
     return logging.getLogger(__name__)
 
 
 def configure_logging(level=0):
-    """Configure the logger with the specified level.
+    """Configure the logger with the specified `level`. Valid `level` values
+    are:
 
-        0 = logging.WARNING is informational
-        1 = logging.INFO is user debug
-        2> = logging.DEBUG is developer debug
+    ======  =================================
+    level   logging value
+    ======  =================================
+    0       logging.WARNING is informational
+    1       logging.INFO is user debug
+    2+      logging.DEBUG is developer debug
+    ======  =================================
+
+    Anything greater than ``2`` is treated as ``2``.
 
     Args:
-        level (int): the logging level; defaults to 0
+        level (int, optional): The logging level; defaults to ``0``.
     """
     if level == 0:
         get_logger().setLevel(logging.WARN)
@@ -115,11 +120,11 @@ def dictify_row(cursor, row):
     """Turns the given row into a dictionary where the keys are the column names.
 
     Args:
-        cursor (sqlite3.Cursor): the database cursor
-        row (dict): the current row
+        cursor (sqlite3.Cursor): The database cursor.
+        row (sqlite3.Row): The current row.
 
     Returns:
-        OrderedDict: dictionary with keys being column names
+        collections.OrderedDict: A ``dict`` with keys as column names.
     """
     d = OrderedDict()
     for i, col in enumerate(cursor.description):
@@ -128,54 +133,183 @@ def dictify_row(cursor, row):
 
 
 def dictify_cursor(cursor):
-    """
-    Converts all cursor rows into dictionaries where keys are the column names.
+    """All rows are converted into a :class:`collections.OrderedDict` where
+    keys are the column names.
 
     Args:
-        cursor (sqlite3.Cursor): the database cursor
+        cursor (sqlite3.Cursor): The database cursor.
 
     Returns:
-        list: list of ``OrderedDict`` objects with keys being column names
+        list: A ``list`` of ``dicts`` where each ``dict's`` key is a column
+        name.
     """
     return [dictify_row(cursor, row) for row in cursor]
 
 
-def format_time(start, end):
-    """Format length of time between start and end.
+def cmp(value_1, value_2):
+    """Compare two values.  The return value will be ``-1`` if
+    `value_1` is less than `value_2`, ``0`` if `value_1` is equal
+    to `value_2`, or ``1`` if `value_1` is greater than `value_2`.
 
     Args:
-        start (float): the start time
-        end (float): the end time
+        value_1: The first value.
+        value_2: The second value.
 
     Returns:
-        str: a formatted string of hours, minutes, and seconds
+        int:  ``-1``, ``0``, or ``1``
+    """
+    return (value_1 > value_2) - (value_1 < value_2)
+
+
+def create_random_string(size=6, chars=string.ascii_uppercase + string.digits):
+    """Generate a random string of length `size` using the characters
+    specified by `chars`.
+
+    Args:
+        size (int, optional): The length of the string.  6 is the default.
+        chars (list, optional): The characters to use.
+
+    Returns:
+        str: A random generated string.
+    """
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def delete_file(file_name):
+    """ Delete specified `file_name`.  This will fail silently.
+
+    Args:
+        file_name (str): The name of file to delete.
+    """
+    try:
+        os.remove(file_name)
+    except OSError as ose:
+        pass
+
+
+def format_time(start, end):
+    """Format length of time between start and end into a readable string.
+
+    Args:
+        start (float): The start time.
+        end (float): The end time.
+
+    Returns:
+        str: A formatted string of hours, minutes, and seconds.
     """
     hours, rem = divmod(end-start, 3600)
     minutes, seconds = divmod(rem, 60)
     return "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
 
 
-def str2bool(val):
-    """Convert a string into a boolean.
+def get_file_name(url, directory=None):
+    """Get the file name of `url`.  If `directory` has a value, return the
+    name of the file with directory prepended.
+
+    Examples:
+        >>> get_file_name('http://www.google.com/a/b/c/file.html', '/tmp')
+        '/tmp/file.html
 
     Args:
-        val (str): a string representing True
+        url (str): The url of a file.
+        directory (str, optional): The name of a directory.
 
     Returns:
-        bool: True if ``val`` is 'true', '1', 't', 'y', or 'yes'
+        str: The full path of file.
     """
-    return str(val).lower() in ['true', '1', 't', 'y', 'yes']
+    download_file_name = url.split('/')[-1]
+    local_directory = directory if directory else os.getcwd()
+    return os.path.abspath(os.path.join(local_directory, download_file_name))
+
+
+def is_url(url):
+    """Check if this is a URL or not by just checking the protocol.
+
+    Args:
+        url (str): A string in the form of a url.
+
+    Returns:
+        bool: ``True`` if `url` has a valid protocol, ``False`` otherwise.
+    """
+    if url and url.startswith(('http://', 'https://', 'ftp://')):
+        return True
+
+    return False
+
+
+def merge_two_dicts(x, y):
+    """Given two dicts, merge them into a new dict as a shallow copy.
+
+    Args:
+        x (dict): Dictionary 1.
+        y (dict): Dictionary 2.
+
+    Returns:
+        dict: The merged dictionary.
+    """
+    z = x.copy()
+    z.update(y)
+    return z
+
+
+def multikeysort(items, columns):
+    """Sort a ``list`` of ``dicts`` by multiple keys in ascending or descending
+    order. To sort in descending order, prepend a '-' (minus sign) on the
+    column name.
+
+    Pulled from: https://stackoverflow.com/questions/1143671/python-sorting-list-of-dictionaries-by-multiple-keys
+
+    Examples:
+        >>> my_list = [
+            {'name': 'apple', 'count': 10, 'price': 1.00},
+            {'name': 'banana', 'count': 5, 'price': 1.00},
+            {'name': 'orange', 'count': 20, 'price': 2.00},
+        ]
+
+        >>> multikeysort(my_list, ['-name', 'count'])
+        [{'count': 20, 'name': 'orange', 'price': 2.0},
+         {'count': 5, 'name': 'banana', 'price': 1.0},
+         {'count': 10, 'name': 'apple', 'price': 1.0}]
+
+        >>> multikeysort(my_list, ['-price', 'count'])
+        [{'count': 20, 'name': 'orange', 'price': 2.0},
+         {'count': 5, 'name': 'banana', 'price': 1.0},
+         {'count': 10, 'name': 'apple', 'price': 1.0}]
+
+    Args:
+        items (list): The ``list`` of ``dict`` objects.
+        columns (list): A ``list`` of columns names to sort `items`.
+
+    Returns:
+        list: The sorted ``list``.
+
+    """
+    comparers = [
+        ((ig(col[1:].strip()), -1) if col.startswith('-') else (
+        ig(col.strip()), 1))
+        for col in columns
+    ]
+
+    def comparer(left, right):
+        comparer_iter = (
+            cmp(fn(left), fn(right)) * mult
+            for fn, mult in comparers
+        )
+        return next((result for result in comparer_iter if result), 0)
+
+    return sorted(items, key=cmp_to_key(comparer))
 
 
 def open_resource(resource, mode='rb'):
-    """Open different types of files and return the handle.
+    """Open different types of files and return a handle to that resource.
+    Valid types of resources are gzipped and bzipped files along with URLs.
 
     Args:
-        resource (str): a string representing a file or url
-        mode (str): standard file open modes
+        resource (str): A string representing a file or url.
+        mode (str, optional): Mode to open the file.
 
     Returns:
-        a handle to the opened ``resource``
+        A handle to the opened ``resource``.
     """
     if not resource:
         return None
@@ -193,114 +327,17 @@ def open_resource(resource, mode='rb'):
         return open(resource, mode)
 
 
-def get_file_name(url, directory=None):
-    """Get the last part of the file name.
+def str2bool(val):
+    """Convert a string into a boolean.  Valid strings that return ``True``
+    are: ``true``, ``1``, ``t``, ``y``, ``yes``
+
+    Canse-sensitivity does NOT matter.  ``yes`` is the same as ``YeS``.
 
     Args:
-        url (str): url of file
-        directory: (optional) directory name
+        val (str): A string representing the boolean value of ``True``.
 
     Returns:
-        str: full path of file
+        bool: ``True`` if `val` represents a boolean ``True``.
     """
-    download_file_name = url.split('/')[-1]
-    local_directory = directory if directory else os.getcwd()
-    return os.path.abspath(os.path.join(local_directory, download_file_name))
+    return str(val).lower() in ['true', '1', 't', 'y', 'yes']
 
-
-def is_url(url):
-    """Check if this is a URL or not by just checking the protocol
-
-    Args:
-        url (str): a string in the form of a url
-
-    Returns:
-        bool: True if it has a valid protocol
-    """
-    if url and url.startswith(('http://', 'https://', 'ftp://')):
-        return True
-
-    return False
-
-
-def delete_file(file_name):
-    """ Delete specified ``file_name``.
-
-    Args:
-        file_name (str): name of file to delete
-    """
-    try:
-        os.remove(file_name)
-    except:
-        pass
-
-
-def merge_two_dicts(x, y):
-    """Given two dicts, merge them into a new dict as a shallow copy.
-
-    Args:
-        x (dict): a dictionary
-        y (dict): a dictionary
-
-    Returns:
-        merged dictionary
-    """
-    z = x.copy()
-    z.update(y)
-    return z
-
-
-def create_random_string(size=6, chars=string.ascii_uppercase + string.digits):
-    """Generate a random string.
-
-    Args:
-        size (int): defaults to 6 characters
-        chars (list): ``list`` of characters to use
-
-    Returns:
-        a random genereated string
-    """
-    return ''.join(random.choice(chars) for _ in range(size))
-
-
-def cmp(a, b):
-    """Compare to values.
-
-    Args:
-        a:  first value
-        b: second value
-
-    Returns:
-        -1,    if a < b
-         0,    if a = b
-         1,    if a > b
-    """
-    return (a > b) - (a < b)
-
-
-def multikeysort(items, columns):
-    """Sort ``list`` of ``dict`` by mutiple keys.
-
-    Pulled from: https://stackoverflow.com/questions/1143671/python-sorting-list-of-dictionaries-by-multiple-keys
-
-    Args:
-        items (list): ``list`` of ``dict``
-        columns: the keys of the ``dict``
-
-    Returns:
-
-    """
-    comparers = [
-        ((ig(col[1:].strip()), -1) if col.startswith('-') else (
-        ig(col.strip()), 1))
-        for col in columns
-    ]
-
-    def comparer(left, right):
-        comparer_iter = (
-            cmp(fn(left), fn(right)) * mult
-            for fn, mult in comparers
-        )
-        return next((result for result in comparer_iter if result), 0)
-
-    return sorted(items, key=cmp_to_key(comparer))

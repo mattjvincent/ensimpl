@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """This module is specific to ensimpl db operations.
-
-Todo:
-    * better documentation
 """
-import ensimpl.utils as utils
-
 import sqlite3
 import time
+
+import ensimpl.utils as utils
 
 LOG = utils.get_logger()
 
@@ -18,10 +15,10 @@ RANKING_ID = {'EntrezGene': 'ZG',
 
 
 def initialize(db):
-    """Initialize the ensimpl database
+    """Initialize the ensimpl database.
 
     Args:
-        db (str): the name of the database file
+        db (str): Full path to the database file.
     """
     LOG.info('Initializing database: {}'.format(db))
 
@@ -51,10 +48,15 @@ def insert_chromosomes_karyotypes(db, ref, chromosomes):
     """Insert chromosome and karyotype information into the database.
 
     Args:
-        db (str): the name of the database file
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
-        chromosomes (list): list of ``dict`` with name and length
+        db (str): Name of the database file.
+
+        ref (:obj:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
+
+        chromosomes (list): Each element is a ``dict``.  See
+            :func:`ensimpl.create.ensembl_db.extract_chromosomes_karyotypes`
+            for more information.
+
     """
     LOG.info('Inserting chromosomes into database: {}'.format(db))
 
@@ -107,11 +109,18 @@ def insert_genes(db, ref, genes, synonyms):
     """Insert genes into the database.
 
     Args:
-        db (str): the name of the database file
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
-        genes (dict): gene information withe Ensembl ID being the key
-        synonyms (dict): synony information with xref_id being the key
+        db (str): Name of the database file.
+
+        ref (:obj:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
+
+        genes (dict): Gene information withe Ensembl ID being the key.  Values
+            were extracted via the following method:
+            :func:`ensimpl.create.ensembl_db.extract_ensembl_genes`.
+
+        synonyms (dict): Synonym information with xref_id being the key. Values
+            were extracted via the following method:
+            :func:`ensimpl.create.ensembl_db.extract_synonyms`.
     """
     LOG.info('Inserting genes into database: {}'.format(db))
 
@@ -216,10 +225,14 @@ def insert_gtpe(db, ref, gtep):
     """Insert the gene, transcript, protein, exon information into the database.
 
     Args:
-        db (str): the name of the database file
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
-        gtep (list): a list of the gene, transcript, protein, exon information
+        db (str): Name of the database file.
+
+        ref (:obj:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
+
+        gtep (list): A ``list`` of the gene, transcript, protein, exon
+            information. Values were extracted via the following method:
+            :func:`ensimpl.create.ensembl_db.extract_ensembl_gtpe`.
     """
     LOG.info('Inserting transcripts, proteins, exons '
              'into database: {}'.format(db))
@@ -272,10 +285,10 @@ def finalize(db, ref):
     create the necessary indices.
 
      Args:
-        db (str): the name of the database file
-        ref (:obj:`ensimpl.create.create.ensimpl.EnsemblReference`):
-            contains information about the Ensembl reference
-        species_id (str): species identifier
+        db (str): Name of the database file.
+
+        ref (:obj:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
      """
     start = time.time()
     conn = sqlite3.connect(db)

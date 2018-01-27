@@ -86,21 +86,19 @@ class Query:
         """Initialization.
 
         Args:
-            term (str): the query term
-            exact (bool): True for exact match
+            term (str, optional): The search term.
+            exact (bool, optional): ``True`` for exact match of `term`.
         """
         self.term = term
         self.exact = exact
         self.region = None
         self.query = None
-        print('term=', self.term)
-        print('exact=', self.exact)
-        print('region=', self.region)
-        print('query=', self.query)
 
     def __str__(self):
         """Return a string representation of this query"""
-        ret_str = 'Query Object: term="{}", "region="{}", exact="{}", query="{}"'.format(self.term, self.region, self.exact, self.query)
+        ret_str = ('Query Object: term="{}", "region="{}",'
+                   ' exact="{}", query="{}"').format(self.term, self.region,
+                                                     self.exact, self.query)
         return ret_str
 
     def get_parameters(self):
@@ -122,13 +120,30 @@ class Match:
     """
     def __init__(self, ensembl_gene_id=None, ensembl_version=None,
                  external_ids=None, symbol=None, name=None, synonyms=None,
-                 species_id=None,  chromosome=None, position_start=None,
+                 species=None, chromosome=None, position_start=None,
                  position_end=None, strand=None, match_reason=None,
                  match_value=None):
+        """Constructor.
+
+        Args:
+            ensembl_gene_id (str, optional): Ensembl gene identifier.
+            ensembl_version (int, optional): Ensembl gene version
+            external_ids (list, optional): holds ``dict`` of external ids
+            symbol (str, optional): Ensembl gene symbol.
+            name (str, optional): Ensembl gene name.
+            synonyms (list, optional): each element is a synonym (``str``)
+            species (str, optional): Species identifier.
+            chromosome (str, optional): Ensembl gene chromosome.
+            position_start (int, optional): start location on `chromosome`
+            position_end (int, optional): end location on `chromosome`
+            strand (str, optional): ``+`` or ``-``
+            match_reason (str, optional): The key the term matched on.
+            match_value (str, optional): The value the term matched on.
+        """
         self.ensembl_gene_id = ensembl_gene_id
         self.ensembl_version = ensembl_version
         self.external_ids = external_ids
-        self.species_id = species_id
+        self.species = species
         self.symbol = symbol
         self.name = name
         self.synonyms = synonyms
@@ -143,14 +158,25 @@ class Match:
         return str(self.ensembl_gene_id)
 
     def dict(self):
+        """For JSON representation.
+
+        Returns:
+            dict: With keys representing all the attributes.
+        """
         return self.__dict__
 
 
 class Result:
-    """
-    Simple class to encapsulate a Query and matches
+    """Simple class to encapsulate a Query and matches
     """
     def __init__(self, query=None, matches=None, num_results=None):
+        """Constructor.
+
+        Args:
+            query (Query, optional): The ``Query`` object.
+            matches (list, optional): ``list`` of ``Match`` objects.
+            num_results (int, optional): The maximum number of matches.
+        """
         self.query = query
         self.matches = matches
         self.num_matches = len(matches) if matches else 0
@@ -161,14 +187,14 @@ def get_query(term, exact=True):
     """Get query based upon parameters
 
     Args:
-        term: the query object
-        exact: True for exact matches
+        term (str): The search term.
+        exact (bool, optional): ``True`` for exact match of `term`.
 
     Returns:
-        query: the query
+        Query: The query.
 
     Raises:
-        ValueError: when ``term`` is invalid
+        ValueError: When `term` is invalid.
     """
     if not term:
         raise ValueError('No term')
@@ -203,20 +229,20 @@ def get_query(term, exact=True):
     return query
 
 
-def execute_query(query, version, species_id, limit=None):
+def execute_query(query, version, species, limit=None):
     """Execute the SQL query.
 
     Args:
         query (:obj:`Query`): the query
-        species_id (str): the species identifier
-        version (int): database version
-        limit (int): maximum number of items to return
+        version (int): The Ensembl version.
+        species (str): The Ensembl species identifier.
+        limit (int, optional): Maximum number to return, ``None`` for all.
 
     Returns:
-        :obj:`Result`: the resulting object
+        :obj:`Result`: The resulting object.
 
     Raises:
-        SearchException: when sqlite error or other error occurs
+        SearchException: When a sqlite error or other error occur.
     """
     if not query:
         raise ValueError('No query')
@@ -225,7 +251,7 @@ def execute_query(query, version, species_id, limit=None):
     ilimit = fetch_utils.nvli(limit, -1)
 
     try:
-        conn = fetch_utils.connect_to_database(version, species_id)
+        conn = fetch_utils.connect_to_database(version, species)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -238,7 +264,7 @@ def execute_query(query, version, species_id, limit=None):
 
             match.ensembl_gene_id = row[gene_id]
             match.ensembl_version = row['ensembl_version']
-            match.species_id = row['species_id']
+            match.species = row['species_id']
             match.symbol = row['symbol']
             match.name = row['name']
 
@@ -293,22 +319,22 @@ def execute_query(query, version, species_id, limit=None):
     return Result(query, matches, num_matches)
 
 
-def search(term, version, species_id, exact=True, limit=None):
+def search(term, version, species, exact=True, limit=None):
     """Perform the search.
 
     Args:
-        term (str): the term to look for
-        version (int): Ensembl version or None for latest
-        species_id (str): the species identifier
-        exact (bool): True for exact match
-        limit (int): number to return, None for all
+        term (str): The search term.
+        version (int): The Ensembl version.
+        species (str): The Ensembl species identifier.
+        exact (bool, optional): ``True`` for exact match of `term`.
+        limit (int, optional): Maximum number to return, ``None`` for all.
 
     Returns:
-        :obj:`Result`: the result of the query
+        :obj:`Result`: The result of the query.
     """
     LOG.debug('term={}'.format(term))
     LOG.debug('version={}'.format(version))
-    LOG.debug('species_id={}'.format(species_id))
+    LOG.debug('species={}'.format(species))
     LOG.debug('exact={}'.format(exact))
     LOG.debug('limit={}'.format(limit))
 
@@ -317,7 +343,7 @@ def search(term, version, species_id, exact=True, limit=None):
 
         LOG.debug('QUERY={}'.format(query))
 
-        result = execute_query(query, version, species_id, limit)
+        result = execute_query(query, version, species, limit)
 
         LOG.debug('# matches: {}'.format(len(result.matches)))
 

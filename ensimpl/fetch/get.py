@@ -12,12 +12,14 @@ def chromosomes(version, species_id):
     """Get the chromosomes.
 
     Args:
-        version (int): Ensembl version or None for latest
-        species_id (str): the species identifier
+        version (int): The Ensembl version.
+        species_id (str): The Ensembl species identifier.
 
     Returns:
-        list: a ``list`` element with a ``dict`` with the following keys:
-            chromosome, name, length, order
+        list: A ``list`` of ``dicts`` with the following keys:
+            * chromosome
+            * length
+            * order
 
     """
     sql_chromosomes = 'SELECT * FROM chromosomes '
@@ -27,18 +29,13 @@ def chromosomes(version, species_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    sql_statement = sql_chromosomes
-
-    params = ()
-
-    sql_statement += sql_order
+    sql_statement = sql_chromosomes + sql_order
 
     chroms = []
 
-    for row in cursor.execute(sql_statement, params):
+    for row in cursor.execute(sql_statement):
         chroms.append({
             'chromosome': row['chromosome'],
-            'name': row['chromosome'],
             'length': row['chromosome_length'],
             'order': row['chromosome_num']
         })
@@ -54,9 +51,15 @@ def karyotypes(version, species_id):
         species_id (str): the species identifier
 
     Returns:
-        dict: a ``dict`` of chromsomes with a ``dict`` with the following keys:
-            karyotype, chromosome, name, length, order
-
+        list: A ``list`` element with a ``dict`` with the following keys:
+            * chromosome
+            * length
+            * order
+            * karyotypes
+                * seq_region_start
+                * seq_region_end
+                * band
+                * stain
     """
     sql_karyotypes = ('SELECT * FROM karyotypes k, chromosomes c '
                       ' WHERE k.chromosome = c.chromosome ')
@@ -66,28 +69,25 @@ def karyotypes(version, species_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    sql_statement = sql_karyotypes
-
-    params = ()
-
-    sql_statement += sql_order
+    sql_statement = sql_karyotypes + sql_order
 
     karyotype_data = OrderedDict()
 
-    for row in cursor.execute(sql_statement, params):
+    for row in cursor.execute(sql_statement):
         chrom_data = karyotype_data.get(row['chromosome'],
                                       {'chromosome': row['chromosome'],
-                                       'name': row['chromosome'],
                                        'length': row['chromosome_length'],
                                        'order': row['chromosome_num'],
                                        'karyotypes': []})
+
         chrom_data['karyotypes'].append({'seq_region_start': row['seq_region_start'],
                                          'seq_region_end': row['seq_region_end'],
                                          'band': row['band'],
                                          'stain': row['stain']})
         karyotype_data[row['chromosome']] = chrom_data
 
-    return karyotype_data
+    # turn into a list
+    return list(karyotype_data.values())
 
 
 def meta(version, species_id):
@@ -98,8 +98,11 @@ def meta(version, species_id):
         species_id (str): the species identifier
 
     Returns:
-        dict: a ``dict`` with keys of 'version' and 'species'; each species
-            element returns the assembly information
+        dict: A ``dict`` with the following keys:
+            * assembly
+            * assembly_patch
+            * species
+            * version
     """
     sql_meta = '''
         SELECT distinct meta_key meta_key, meta_value, species_id
@@ -133,11 +136,14 @@ def info(version, species_id):
         species_id (str): the species identifier
 
     Returns:
-        dict: a ``dict`` with keys of 'version' and 'species'; each species
-            element returns the assembly information and statistical information
-            about the elements in the database
+        dict: A ``dict`` with the following keys:
+            * assembly
+            * assembly_patch
+            * species
+            * stats - informational counts about the database
+            * version
     """
-    stats = meta(version)
+    stats = meta(version, species_id)
 
     sql_lookup_stats = '''
         SELECT count(egl.lookup_value) num, sr.description 
@@ -151,11 +157,11 @@ def info(version, species_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
+    stats['stats'] = {}
+
     for row in cursor.execute(sql_lookup_stats):
-        data = (row['description'], row['num'])
-        if 'stats' not in stats['species'][row['species_id']]:
-            stats['species'][row['species_id']]['stats'] = []
-        stats['species'][row['species_id']]['stats'].append(data)
+        print(utils.dictify_row(cursor, row))
+        stats['stats'][row['description']] = row['num']
 
     cursor.close()
     conn.close()

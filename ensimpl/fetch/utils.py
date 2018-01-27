@@ -1,8 +1,8 @@
 # -*- coding: utf_8 -*-
-from collections import OrderedDict
-
 import re
 import sqlite3
+
+from collections import OrderedDict
 
 import ensimpl.utils as utils
 import ensimpl.db_config as db_config
@@ -19,9 +19,9 @@ class Region:
     """Encapsulates a genomic region.
 
     Attributes:
-        chromosome (str): chromosome name
-        start_position (int): start position
-        end_position (int): end position
+        chromosome (str): The chromosome name.
+        start_position (int): The start position.
+        end_position (int): The end position.
     """
     def __init__(self):
         """Initialization."""
@@ -33,7 +33,7 @@ class Region:
         """Return string representing this region.
 
         Returns:
-            str: in format of chromosome:start_position-end_position
+            str: In the format of chromosome:start_position-end_position.
         """
         return '{}:{}-{}'.format(self.chromosome,
                                  self.start_position,
@@ -43,39 +43,25 @@ class Region:
         """Internal representation.
 
         Returns:
-            dict: keys being the attributes
+            dict: The keys being the attributes.
         """
         return {'chromosome': self.chromosome,
                 'start_position': self.start_position,
                 'end_position': self.end_position}
 
 
-def dictify_row(cursor, row):
-    """Turns the given row into a dictionary where the keys are the column names
+def connect_to_database(version, species):
+    """Connect to the Ensimpl database.
 
     Args:
-        cursor: database cursor
-        row: database row
-
-    Returns: ``OrderedDict``
-    """
-    d = OrderedDict()
-    for i, col in enumerate(cursor.description):
-        d[col[0]] = row[i]
-    return d
-
-
-def connect_to_database(version, species_id):
-    """Connect to the ensimpl database
-
-    Args:
-        version (int): the Ensembl version number
+        version (int): The Ensembl version number.
+        species (str): The Ensembl species identifier.
 
     Returns:
         a connection to the database
     """
     try:
-        database = db_config.get_ensimpl_db(version, species_id)['db']
+        database = db_config.get_ensimpl_db(version, species)['db']
         return sqlite3.connect(database)
     except Exception as e:
         LOG.error('Error connecting to database: {}'.format(str(e)))
@@ -83,27 +69,27 @@ def connect_to_database(version, species_id):
 
 
 def nvl(value, default):
-    """Returns value if value has a value, else default.
+    """Returns `value` if value has a value, else `default`.
 
     Args:
-        value: the evalue to evaluate
-        default: the default value
+        value: The value to evaluate.
+        default: The default value.
 
     Returns:
-        value or default
+        Either `value` or `default`.
     """
     return value if value else default
 
 
 def nvli(value, default):
-    """Returns value as an int if value can be converted, else default.
+    """Returns `value` as an int if `value` can be converted, else `default`.
 
     Args:
-        value: the value to evaluate and convert
-        default: the default value
+        value: The value to evaluate and convert to an it.
+        default: The default value.
 
     Returns:
-        value or default
+        Either `value` or `default`.
     """
     ret = default
     if value:
@@ -121,10 +107,10 @@ def get_multiplier(factor):
     will be returned.
 
     Args:
-        factor (str): 'mb', 'm', or 'k'
+        factor (str): One of 'mb', 'm', or 'k'.
 
     Returns:
-        int: the multiplying value
+        int: The multiplying value.
     """
     if factor:
         factor = factor.lower()
@@ -143,13 +129,13 @@ def str_to_region(location):
     """Parse a string into a genomic location.
 
     Args:
-        location (str): genomic location (range)
+        location (str): The genomic location (range).
 
     Returns:
-        ``ensimpl.search.search_database.Region``: region object
+        Region: A region object.
 
     Raises:
-        ValueError: if location is invalid
+        ValueError: If `location` is invalid.
     """
     if not location:
         raise ValueError('No location specified')
@@ -187,13 +173,13 @@ def validate_ensembl_id(ensembl_id):
     """Validate an id to make sure it conforms to the convention.
 
     Args:
-        ensembl_id (str): the ensembl identifer
+        ensembl_id (str): The Ensembl identifer to test.
 
     Returns:
-        the valid ensembl id
+        str: The Ensembl id.
 
     Raises:
-        ValueError: if the Ensembl ID is invalid
+        ValueError: If `ensembl_id` is invalid.
     """
     if not ensembl_id:
         raise ValueError('No Ensembl ID')
@@ -203,11 +189,11 @@ def validate_ensembl_id(ensembl_id):
     if len(valid_id) <= 0:
         raise ValueError('Empty Ensembl ID')
 
-    if REGEX_ENSEMBL_HUMAN_ID.match(ensembl_id):
+    if REGEX_ENSEMBL_HUMAN_ID.match(valid_id):
         return valid_id
-    elif REGEX_ENSEMBL_MOUSE_ID.match(ensembl_id):
+    elif REGEX_ENSEMBL_MOUSE_ID.match(valid_id):
         return valid_id
 
-    raise ValueError('Invalid Ensembl ID')
+    raise ValueError('Invalid Ensembl ID: {}'.format(ensembl_id))
 
 

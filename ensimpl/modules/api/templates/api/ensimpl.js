@@ -55,7 +55,7 @@
               _.response = data;
     
               if (callback) {
-                  callback(data);
+                  callback(data['versions']);
               }
           }).fail(function (jqXHR, textStatus, errorThrown) {
               console.error('Ensimpl fail');

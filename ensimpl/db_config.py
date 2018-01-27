@@ -5,55 +5,73 @@ import sys
 
 from ensimpl.utils import multikeysort
 
+ENSIMPL_DB_NAME = 'ensimpl.*.db3'
+
 ENSIMPL_DBS = None
+'''`list` of all the databases.'''
+
 ENSIMPL_DBS_DICT = None
+'''`dict` of all the databases.'''
 
 
 def get_ensimpl_db(version, species):
-    """
-    Get the database based upon ``version``.
+    """Get the database based upon the `version` and `species` values which
+    should represent the Ensembl reference number and species identifier.
 
     Args:
-        version (int): the version number
-        species (species): the species
+        version (int): The Ensembl version number.
+        species (str): The short identifier of a species.
 
     Returns:
-        the database file
+        str: The database file.
 
     Raises:
-        ValueError if unable to find the ``version``
+        ValueError: If unable to find the `version` and `species` combination
+            or if `version` is not a number.
+
+    Examples:
+            >>> get_ensimpl_db(91, 'Mm')
+            'ensimpl.91.Mm.db3'
     """
     try:
         return ENSIMPL_DBS_DICT['{}:{}'.format(int(version), species)]
-    except Exception as e:
-        raise ValueError('Unable to find version "{}" and species "{}"'.format(version, species))
+    except KeyError as ke:
+        error = 'Unable to find version "{}" and species "{}"'
+        raise ValueError(error.format(version, species))
+    except ValueError as ve:
+        error = 'Version "{}" does not appear to be a numeric value'
+        raise ValueError(error.format(version, species))
 
 
 def get_all_ensimpl_dbs(directory):
-    """
-    Configure the "global" list of ensimpl db files in ``directory``.
+    """Configure the list of ensimpl db files in `directory`.  This will set
+    values for :data:`ENSIMPL_DBS` and :data:`ENSIMPL_DBS_DICT`.
 
     Args:
-        directory (str): directory path
+        directory (str): The directory path.
     """
-    file_str = os.path.join(directory, 'ensimpl.*.db3')
-    dbs = glob.glob(file_str)
+    databases = glob.glob(os.path.join(directory, ENSIMPL_DB_NAME))
 
     db_list = []
     db_dict = {}
 
-    # get the versions
-    for db in dbs:
-        version = int(db.split('.')[-3])
-        species = db.split('.')[-2]
-        combined_key = '{}:{}'.format(version, species)
-        val = {'version': version, 'species': species, 'db': db}
+    for db in databases:
+        # db should be a string consisting of the following elements:
+        # 'ensimpl', version, species, 'db3'
+        val = {
+            'version': int(db.split('.')[1]),
+            'species': db.split('.')[2],
+            'db': db
+        }
         db_list.append(val)
+
+        # combined key will be 'version:species'
+        combined_key = '{}:{}'.format(val['version'], val['species'])
         db_dict[combined_key] = val
 
+    # sort the databases in descending order by version and than species for
+    # readability in the API
     all_sorted_dbs = multikeysort(db_list, ['-version', 'species'])
-
-    print(all_sorted_dbs)
 
     global ENSIMPL_DBS
     ENSIMPL_DBS = all_sorted_dbs
@@ -62,12 +80,14 @@ def get_all_ensimpl_dbs(directory):
 
 
 def init(directory=None):
-    """
-    Initialize the "global" database variables.
+    """Initialize the configuration of the Ensimpl databases.
+
+    NOTE: This method is referenced from the ``__init__.py`` in this module.
 
     Args:
-        directory (str): a directory that holds the data files
-           if None the environment variable ENSIMPL_DIR will be used
+        directory (str, optional): A directory that specifies where the ensimpl
+            databases live. If None the environment variable ``ENSIMPL_DIR`` will
+            be used.
     """
     ensimpl_dir = os.environ.get('ENSIMPL_DIR', None)
 
@@ -85,11 +105,13 @@ def init(directory=None):
         ensimpl_dir = os.path.abspath(ensimpl_dir)
 
     if not os.path.exists(ensimpl_dir):
-        print('Specified ENSIMPL_DIR does not exist: {}'.format(ensimpl_dir))
+        print('Specified ENSIMPL_DIR does not exits')
+        print('ENSIMPL_DIR = "{}"'.format(ensimpl_dir))
         sys.exit()
 
     if not os.path.isdir(ensimpl_dir):
-        print('Specified ENSIMPL_DIR is not a directory: {}'.format(ensimpl_dir))
+        print('Specified ENSIMPL_DIR is not a directory')
+        print('ENSIMPL_DIR = "{}"'.format(ensimpl_dir))
         sys.exit()
 
     get_all_ensimpl_dbs(ensimpl_dir)

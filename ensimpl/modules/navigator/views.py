@@ -7,10 +7,11 @@ navigator = Blueprint('nav', __name__, template_folder='templates', url_prefix='
 
 @navigator.route("/js/karyotype.js")
 def karyotype_js():
-    """Get the Ensimpl Javascript file.
+    """Get the Karyotype Javascript file.
 
     Returns:
-        the Javascript response object
+        :class:`flask.Response`: The response which is the karyotype.js.
+
     """
     headers = {'Content-Type': 'application/javascript'}
     return render_template('navigator/karyotype.js'), 200, headers
@@ -19,5 +20,8 @@ def karyotype_js():
 @navigator.route("/")
 def index():
     """Show the navigator page.
+
+    Returns:
+        :class:`flask.Response`: The response object.
     """
     return render_template('navigator/navigator.html')

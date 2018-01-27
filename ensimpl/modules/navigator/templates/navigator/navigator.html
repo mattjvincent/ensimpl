@@ -3,6 +3,11 @@
 {% block title %}Genome Navigator{% endblock %}
 
 {% block head %}
+<!-- Bootstrap CSS -->
+<link rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
+      integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
+      crossorigin="anonymous">
     <style>
     svg text {font-family:'Lato',Helvetica,Arial,sans-serif}
     .y-axis path,.y-axis line{fill:none;stroke:none;shape-rendering:crispEdges;}
@@ -99,6 +104,18 @@
 {% endblock %}
 
 {% block javascript %}
+<script src="//code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"
+        integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
+        crossorigin="anonymous"></script>
+
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"
+        integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ"
+        crossorigin="anonymous"></script>
+
 <script
     src="https://d3js.org/d3.v3.min.js"
     crossorigin="anonymous"></script>
@@ -179,8 +196,6 @@
             let versions = {};
             let species = {};
 
-
-
             $.each(data, function(idx, elem) {
                 versions[elem['version']] = +elem['version'];
                 species[elem['species']] = elem['species'];
@@ -197,13 +212,11 @@
                 $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
             });
 
-
-
             let selectedVersion = $("#selectVersion").val();
             let selectedSpecies = $("#selectSpecies").val();
 
-            window.KARYOTYPE = new karyotype({'width': $("#chromosomeKaryotype").width() - 100,
-                                              'height': $("#chromosomeKaryotype").width() / 3,
+            window.KARYOTYPE = new karyotype({'width': $('#chromosomeKaryotype').width() - 100,
+                                              'height': $('#chromosomeKaryotype').width() / 3,
                                               'id':'chromosomeKaryotype',
                                               'onHover':onHover,
                                               'onHoverStop': onHoverStop,
@@ -212,8 +225,6 @@
                                               //'onSelecting':onSelecting,
                                               'url':"{{ url_for('api.karyotypes', _external=True) }}?species=" + selectedSpecies + "&version=" + selectedVersion
             });
-
-
         });
 
         $('#searchTerm').keypress(function (evt) {

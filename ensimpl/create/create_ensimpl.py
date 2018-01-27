@@ -31,11 +31,11 @@ def parse_config(resource_name):
     """Take a resource string (file name, url) and open it.  Parse the file.
 
     Args:
-        resource_name (str): the name of the resource
+        resource_name (str): String identifying the resource.
 
     Returns:
-        dict: :obj:`EnsemblReference` with the
-            key being the Ensembl version
+        dict: A ``dict`` with keys being the Ensembl version and values
+            of :obj:`EnsemblReference`.
     """
     start = time.time()
     all_releases = {}
@@ -59,14 +59,13 @@ def parse_config(resource_name):
     except IOError as io_error:
         LOG.error('Unable to access resource: {}'.format(resource_name))
         LOG.debug(io_error)
-        all_releases = {}
+        all_releases = None
     except TypeError as type_error:
         LOG.error('Unable to parse resource: {}'.format(resource_name))
         LOG.debug(type_error)
         LOG.debug('Error on the following:')
         LOG.debug(line)
-
-        all_releases = {}
+        all_releases = None
 
     LOG.info('Config parsed in {}'.format(
         utils.format_time(start, time.time())))
@@ -75,13 +74,16 @@ def parse_config(resource_name):
 
 
 def create(ensembl, species, directory, resource):
-    """Create ensimpl database(s).
+    """Create Ensimpl database(s).  Output database name will be:
+
+    "ensembl. ``version`` . ``species`` .db3"
 
     Args:
-        ensembl (list): all Ensembl versions to create, None for all
-        species (list): all species to create, None for all
-        directory: directory to use
-        resource: configuration to parse for Ensembl information
+        ensembl (list): A ``list`` of all Ensembl versions to create, ``None``
+            for all.
+        species (list): A ``list`` of all species to create, ``None`` for all.
+        directory (str): Output directory.
+        resource (str): Configuration file location to parse.
     """
     if ensembl:
         LOG.debug('Ensembl Versions: {}'.format(','.join(ensembl)))
@@ -114,16 +116,18 @@ def create(ensembl, species, directory, resource):
                       ' {}'.format(', '.join(all_releases)))
             raise Exception("Unable to create databases")
 
-    for release_version, release_value in sorted(releases.items(), reverse=True):
-        if ensembl and release_version not in ensembl:
+    for release_ver, release_val in sorted(releases.items(), reverse=True):
+        if ensembl and release_ver not in ensembl:
             continue
 
-        for species_id, ensembl_reference in sorted(release_value.items()):
+        for species_id, ensembl_reference in sorted(release_val.items()):
             if not species or (species_id in species):
                 LOG.warn('Generating ensimpl database for '
-                         'Ensembl version: {}'.format(release_version))
+                         'Ensembl version: {}'.format(release_ver))
 
-                ensimpl_file = 'ensimpl.{}.{}.db3'.format(release_version, species_id)
+                ensimpl_file = 'ensimpl.{}.{}.db3'.format(release_ver,
+                                                          species_id)
+
                 ensimpl_file = os.path.join(directory, ensimpl_file)
                 utils.delete_file(ensimpl_file)
 
@@ -141,7 +145,7 @@ def create(ensembl, species, directory, resource):
                 LOG.info('Extracting synonyms...')
                 synonyms = ensembl_db.extract_synonyms(ensembl_reference)
     
-                LOG.info('Extracting transcript, protein, and exon information...')
+                LOG.info('Extracting transcript, protein, and exons...')
                 gtep = ensembl_db.extract_ensembl_gtpe(ensembl_reference)
     
                 LOG.info('Inserting chromsomes..')
@@ -153,7 +157,7 @@ def create(ensembl, species, directory, resource):
                 ensimpl_db.insert_genes(ensimpl_file, ensembl_reference, genes,
                                         synonyms)
     
-                LOG.info('Inserting transcript, protein, and exon information...')
+                LOG.info('Inserting transcript, protein, and exons...')
                 ensimpl_db.insert_gtpe(ensimpl_file, ensembl_reference, gtep)
     
                 LOG.info('Finalizing...')
