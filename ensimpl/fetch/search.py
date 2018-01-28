@@ -140,7 +140,10 @@ class Match:
             match_reason (str, optional): The key the term matched on.
             match_value (str, optional): The value the term matched on.
         """
+        #: str: Ensembl gene identifier
         self.ensembl_gene_id = ensembl_gene_id
+
+        #: str: Ensembl gene version
         self.ensembl_version = ensembl_version
         self.external_ids = external_ids
         self.species = species

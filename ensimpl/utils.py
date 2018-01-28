@@ -2,6 +2,10 @@
 """Useful generic utilities for the package.
 """
 from collections import OrderedDict
+from functools import cmp_to_key
+from operator import itemgetter as ig
+from urllib.request import urlopen
+
 import bz2
 import gzip
 import logging
@@ -9,10 +13,6 @@ import os
 import random
 import string
 
-from operator import itemgetter as ig
-from functools import cmp_to_key
-
-from urllib.request import urlopen
 
 logging.basicConfig(format='[ENsimpl] [%(asctime)s] %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')

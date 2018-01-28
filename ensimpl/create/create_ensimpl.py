@@ -56,6 +56,10 @@ def parse_config(resource_name):
                 release = all_releases.get(reference.version, {})
                 release[reference.species_id] = reference
                 all_releases[reference.version] = release
+
+        LOG.info('Config parsed in {}'.format(
+            utils.format_time(start, time.time())))
+
     except IOError as io_error:
         LOG.error('Unable to access resource: {}'.format(resource_name))
         LOG.debug(io_error)
@@ -66,9 +70,6 @@ def parse_config(resource_name):
         LOG.debug('Error on the following:')
         LOG.debug(line)
         all_releases = None
-
-    LOG.info('Config parsed in {}'.format(
-        utils.format_time(start, time.time())))
 
     return all_releases
 

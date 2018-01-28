@@ -94,8 +94,8 @@ def meta(version, species_id):
     """Get the database meta information..
 
     Args:
-        version (int): Ensembl version or None for latest
-        species_id (str): the species identifier
+        version (int): Ensembl version.
+        species_id (str): Ensembl species identifier.
 
     Returns:
         dict: A ``dict`` with the following keys:
