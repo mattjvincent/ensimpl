@@ -380,7 +380,7 @@ def gene():
     return jsonify(ret)
 
 
-@api.route("/genes")
+@api.route("/genes", methods=['GET', 'POST'])
 @support_jsonp
 def genes():
     """Get the information for an Ensembl gene.
