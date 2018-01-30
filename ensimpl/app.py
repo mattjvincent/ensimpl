@@ -5,6 +5,8 @@ from flask import Flask
 from flask import render_template
 from flask import url_for
 
+import ensimpl.db_config as db_config
+
 from ensimpl.extensions import debug_toolbar
 from ensimpl.modules.api.views import api
 from ensimpl.modules.navigator.views import navigator
@@ -34,6 +36,8 @@ def create_app(settings_override=None):
     if settings_override:
         app.logger.info('Overriding settings with parameters')
         app.config.update(settings_override)
+
+    db_config.init()
 
     app.logger.setLevel(app.config['LOG_LEVEL'])
 
