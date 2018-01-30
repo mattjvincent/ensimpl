@@ -75,7 +75,7 @@
               species: _.settings.search_species,
               limit: _.settings.search_limit,
               exact: _.settings.search_exact,
-              version: _.settings.version
+              version: _.settings.search_version
           };
     
           if (options && typeof options === 'object') {
