@@ -4,7 +4,7 @@ set -ex
 # docker hub username
 USERNAME=mattjvincent
 # image name
-IMAGE=ensimpl_snps
+IMAGE=ensimpl
 
 docker build -t $USERNAME/$IMAGE:latest .
 
