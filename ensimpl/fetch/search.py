@@ -215,7 +215,7 @@ def get_query(term, exact=True):
         query.query = QUERIES['SQL_ID']
     elif REGEX_MGI_ID.match(valid_term):
         query.query = QUERIES['SQL_ID']
-    elif REGEX_REGION.match(valid_term):
+    elif REGEX_REGION.match(valid_term) and fetch_utils.is_valid_region(term):
         query.query = QUERIES['SQL_REGION']
         query.region = fetch_utils.str_to_region(term)
     else:

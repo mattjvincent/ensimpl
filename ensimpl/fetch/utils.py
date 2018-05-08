@@ -142,6 +142,10 @@ def str_to_region(location):
 
     valid_location = location.strip()
 
+    if ('-' not in valid_location) and (' ' not in valid_location) and \
+            (':' not in valid_location):
+        raise ValueError('Incorrect location format')
+
     if len(valid_location) <= 0:
         raise ValueError('Empty location')
 
@@ -167,6 +171,32 @@ def str_to_region(location):
         loc.end_position *= get_multiplier(multiplier_two)
 
     return loc
+
+
+def is_valid_region(term):
+    """Check if a string can be parsed into a genomic location.
+
+    Args:
+        term (str): The genomic location (range).
+
+    Returns:
+        bool: True if valid region, False otherwise
+    """
+    try:
+        if ('-' not in term) and (' ' not in term) and (':' not in term):
+            raise ValueError('not correct format')
+
+        region = str_to_region(term)
+
+        if region.chromosome is None or \
+                region.start_position is None or \
+                region.end_position is None:
+            return False
+
+    except ValueError as ve:
+        return False
+
+    return True
 
 
 def validate_ensembl_id(ensembl_id):
