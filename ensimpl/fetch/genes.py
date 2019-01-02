@@ -47,10 +47,22 @@ SQL_WHERE_ID = '''
   AND e.ensembl_id IN (SELECT distinct ensembl_id FROM {})
 '''
 
-SQL_ORDER_BY = ' ORDER BY e.ensembl_id'
+SQL_WHERE_REGION = '''
+   AND e.chromosome = :chromosome
+   AND e.start_position <= :end_position
+   AND e.end_position >= :start_position
+'''
+
+SQL_ORDER_BY_ID = ' ORDER BY e.ensembl_id'
+
+SQL_ORDER_BY_POSITION = '''
+ ORDER BY cast(
+       replace(replace(replace(e.chromosome,'X','50'),'Y','51'),'MT','51') 
+       AS int), e.start_position, e.end_position
+'''
 
 
-def get(version, species, ids=None, full=False):
+def get(version, species, ids=None, region=None, order='id', full=False):
     """Get genes matching the ids.
 
         Each match object will contain:
@@ -103,9 +115,6 @@ def get(version, species, ids=None, full=False):
     """
     results = {}
 
-    if ids:
-        results = dict.fromkeys(ids)
-
     try:
         conn = fetch_utils.connect_to_database(version, species)
         conn.row_factory = sqlite3.Row
@@ -136,7 +145,21 @@ def get(version, species, ids=None, full=False):
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
                                        SQL_WHERE_ID.format(temp_table))
 
-        SQL_QUERY = '{} {}'.format(SQL_QUERY, SQL_ORDER_BY)
+        if region:
+            if isinstance(region, str):
+                region = fetch_utils.str_to_region(region)
+
+            SQL_QUERY = '{} {}'.format(SQL_QUERY, SQL_WHERE_REGION)
+            variables['chromosome'] = region.chromosome
+            variables['start_position'] = region.start_position
+            variables['end_position'] = region.end_position
+
+        if order and order.lower() == 'position':
+            SQL_QUERY = '{} {}'.format(SQL_QUERY,
+                                       SQL_ORDER_BY_POSITION)
+        else:
+            SQL_QUERY = '{} {}'.format(SQL_QUERY,
+                                       SQL_ORDER_BY_ID)
 
         for row in cursor.execute(SQL_QUERY, variables):
             gene_id = row['gene_id']
@@ -148,7 +171,6 @@ def get(version, species, ids=None, full=False):
                 gene = {'id': gene_id, 'transcripts': {}}
 
             if row['type_key'] == 'EG':
-
                 gene['species_id'] = row['gene_species_id']
                 gene['chromosome'] = row['gene_chromosome']
                 gene['start'] = row['gene_start']

@@ -7,9 +7,10 @@ from ensimpl.fetch import get
 
 
 @click.command('info', short_help='stats on database')
-@click.option('--ver', default=None)
+@click.argument('version', metavar='<version>')
+@click.argument('species', metavar='<species>')
 @click.option('-v', '--verbose', count=True)
-def cli(ver, verbose):
+def cli(version, species, verbose):
     """
     Stats annotation database <filename> for <term>
     """
@@ -17,11 +18,13 @@ def cli(ver, verbose):
     LOG = get_logger()
     LOG.debug("Stats database...")
 
-    statistics = get.info(ver)
+    statistics = get.info(version, species)
 
     print('Version: {}'.format(statistics['version']))
-    for (k, v) in sorted(statistics['species'].items()):
-        print('Species: {} {}'.format(k, v['assembly']))
-        print(tabulate(v['stats']))
+    print('Species: {} {}'.format(statistics['species'], statistics['assembly_patch']))
+    arr = []
+    for stat in sorted(statistics['stats']):
+        arr.append([stat, statistics['stats'][stat]])
+    print(tabulate(arr))
 
 

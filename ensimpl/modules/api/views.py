@@ -380,8 +380,7 @@ def gene():
     return jsonify(ret)
 
 
-@api.route("/genes", methods=['GET', 'POST'])
-@support_jsonp
+@api.route("/genes", methods=['POST'])
 def genes():
     """Get the information for an Ensembl gene.
 
@@ -440,14 +439,20 @@ def genes():
     Returns:
         :class:`flask.Response`: The response which is a JSON response.
     """
-    current_app.logger.debug('Call for: GET {}'.format(request.url))
+    current_app.logger.debug('Call for: POST {}'.format(request.url))
 
     version = request.values.get('version', None)
-    ids = request.values.getlist('id', None)
+    ids = request.values.getlist('ids[]', None)
     full = ensimpl_utils.str2bool(request.values.get('full', 'F'))
     species = request.values.get('species', None)
+    region = request.values.get('region', None)
 
     ret = {'genes': None}
+
+    if len(ids) == 0:
+        ids = None
+    elif len(ids) == 1 and len(ids[0]) == 0:
+        ids = None
 
     try:
         if not version:
@@ -456,12 +461,10 @@ def genes():
         if not species:
             raise ValueError('No species specified')
 
-        if not ids:
-            raise ValueError('No ids specified')
-
         results = genes_ensimpl.get(version=version,
                                     species=species,
                                     ids=ids,
+                                    region=region,
                                     full=full)
 
         if len(results) == 0:
@@ -471,6 +474,7 @@ def genes():
         ret['genes'] = results
 
     except Exception as e:
+        print(str(e))
         response = jsonify(message=str(e))
         response.status_code = 500
         return response

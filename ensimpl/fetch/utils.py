@@ -43,11 +43,12 @@ class Region:
         """Internal representation.
 
         Returns:
-            dict: The keys being the attributes.
+            str: The keys being the attributes.
         """
-        return {'chromosome': self.chromosome,
-                'start_position': self.start_position,
-                'end_position': self.end_position}
+        return "{}({}:{}-{}')".format(self.__class__,
+                                      self.chromosome,
+                                      self.start_position,
+                                      self.end_position)
 
 
 def connect_to_database(version, species):

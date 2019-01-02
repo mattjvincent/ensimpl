@@ -1,0 +1,333 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Gene Lookup{% endblock %}
+
+{% block head %}
+<!-- Bootstrap CSS -->
+<link rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
+      integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
+      crossorigin="anonymous">
+    <style>
+    svg text {font-family:'Lato',Helvetica,Arial,sans-serif}
+    .y-axis path,.y-axis line{fill:none;stroke:none;shape-rendering:crispEdges;}
+    .y-axis text{font-family:sans-serif;font-size:.8rem;}
+    .x-axis path,.x-axis line{fill:none;stroke:none;shape-rendering:crispEdges;}
+    .x-grid .tick{stroke:rgb(199,199,199);stroke-width:1;shape-rendering:crispEdges;}
+    .x-axis text{font-family:sans-serif;font-size:.8rem;}
+    .brush .extent{stroke:red;fill:red;fill-opacity:.5;shape-rendering:crispEdges;}
+    .svg-container {
+        display: inline-block;
+        position: relative;
+        width: 100%;
+        padding-bottom: 50%; /* aspect ratio */
+        vertical-align: top;
+        overflow: hidden;
+    }
+    .svg-content-responsive {
+        display: inline-block;
+        position: absolute;
+        top: 10px;
+        left: 0;
+    }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+<div class="container">
+
+    <h1>Gene Lookup</h1>
+    <p class="lead"></p>
+
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="selectVersion">Version</label>
+                <select class="form-control" id="selectVersion">
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="selectSpecies">Species</label>
+                <select class="form-control" id="selectSpecies">
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">
+            <div class="form-group">
+                <label for="region">Region</label>
+                <input id="region" class="form-control"/>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="identifiers">Identifiers</label>
+                <textarea id="identifiers" class="form-control" rows="5"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <span class="input-group-btn">
+                <button class="btn btn-secondary" id="btnGo" type="button">Go!</button>
+            </span>
+        </div>
+        <div class="col" id="dl">
+            <span class="input-group-btn">
+                <button class="btn btn-secondary" id="btnDL" type="button">Download</button>
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div id="searchStatus"></div>
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th class="" scope="col">ID</th>
+                    <th class="d-none d-xl-table-cell" scope="col">Position</th>
+                    <th class="" scope="col">Symbol</th>
+                    <th class="d-none d-md-table-cell" scope="col">Name</th>
+                </tr>
+                </thead>
+                <tbody id="tblBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+<script src="//code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"
+        integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
+        crossorigin="anonymous"></script>
+
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"
+        integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ"
+        crossorigin="anonymous"></script>
+
+<script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
+
+<script src="{{ url_for('static', filename='js/Blob.js', _external=True) }}"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.js', _external=True) }}"></script>
+
+
+<script>
+
+    <!--
+    /**
+     * Perform Ensimpl search.
+     */
+    function findGene() {
+        let region = $("#region").val().trim().toUpperCase();
+        let identifiers = $("#identifiers").val().trim().toUpperCase().split("\n");
+        let species = $("#selectSpecies").val();
+        let version = $("#selectVersion").val();
+
+        $("#tblBody").html('');
+
+        if (identifiers.length === 0) {
+            identifiers = null;
+        }
+
+        let data = {
+            'species': species,
+            'version': version,
+            'region': region,
+            'ids': identifiers
+        };
+
+        $('#dl').hide();
+        window.GENES = null;
+
+        $.ajax({
+              url: '{{ url_for('api.genes', _external=True) }}',
+              type: "POST",
+              data: data
+          }).done(function (data, textStatus, jqXHR) {
+                console.log('data=', data);
+                window.GENES = data.genes;
+                let numGenes = 0;
+                $.each(data.genes, function(idx, elem) {
+                    if (numGenes < 100) {
+                        $("#tblBody").append('<tr>' +
+                            '<td>' + elem.id + '</td>' +
+                            '<td class="d-none d-md-table-cell">' + elem.chromosome + ':' + elem.start + '-' + elem.end + '</td>' +
+                            '<td>' + elem.symbol + '</td>' +
+                            '<td class="d-none d-xl-table-cell">' + elem.name + '</td>' +
+                            '</tr>');
+                    }
+                    numGenes++;
+                });
+
+                let message = '';
+                if (numGenes === 0) {
+                    message = 'No matches found';
+                    $('#dl').hide();
+                } else if (numGenes === 1) {
+                    message = '1 match found';
+                    $('#dl').show();
+                } else if (numGenes > 100) {
+                    message = numGenes + ' matches found, displaying first 100';
+                    $('#dl').show();
+                } else {
+                    message = numGenes + ' matches found';
+                    $('#dl').show();
+                }
+
+                $("#searchStatus").html(message);
+
+          }).fail(function (jqXHR, textStatus, errorThrown) {
+              console.error('Ensimpl fail');
+              console.error('jqXHR', jqXHR);
+              console.error('textStatus', textStatus);
+              console.error('errorThrown', errorThrown);
+          });
+
+
+
+/*
+
+                            line.append(r['id'])
+        line.append(r.get('ensembl_version', ''))
+        line.append(r['species_id'])
+        line.append(r.get('symbol', ''))
+        line.append(r.get('name', ''))
+        line.append('||'.join(r.get('synonyms', [])))
+
+        external_ids = r.get('external_ids', [])
+        external_ids_str = ''
+        if external_ids:
+            ext_ids_tmp = []
+            for ext in external_ids:
+                ext_ids_tmp.append('{}/{}'.format(ext['db'], ext['db_id']))
+            external_ids_str = '||'.join(ext_ids_tmp)
+        line.append(external_ids_str)
+
+        line.append(r['chromosome'])
+        line.append(r['start'])
+        line.append(r['end'])
+        line.append(r['strand'])
+
+
+
+                $("#tblBody").append('<tr>' +
+                                     '<td>' + elem.ensembl_gene_id + '</td>' +
+                                     '<td>' + elem.symbol + '</td>' +
+                                     '<td class="d-none d-md-table-cell">' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.match_reason + '</td>' +
+                                     '</tr>');
+ */
+    }
+
+
+    function onSelected(selection) {
+        $("#searchTerm").val(selection.chr + ":" + selection.start + "-" + selection.end);
+        findGene();
+    }
+
+    function loadData(data, fileName) {
+        //var blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
+        //FileSaver.saveAs(blob, fileName);
+    }
+
+    function saveData(data, fileName) {
+        var blob = new Blob(data, {type: "text/plain;charset=utf-8"});
+        FileSaver.saveAs(blob, fileName);
+    }
+
+
+
+
+
+    $().ready(function () {
+        $("#dl").hide();
+
+        window.GENES = null;
+
+
+        window.ENSIMPL = new ensimpl();
+
+        window.ENSIMPL.versions(function(data) {
+            let versions = {};
+            let species = {};
+
+            $.each(data, function(idx, elem) {
+                versions[elem['version']] = +elem['version'];
+                species[elem['species']] = elem['species'];
+            });
+
+            let vals = Object.values(versions);
+            vals.sort().reverse();
+
+            $.each(vals, function(key, val) {
+                $("#selectVersion").append('<option value="' + val + '">' + val + '</option>')
+            });
+
+            $.each(species, function(key, val) {
+                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+            });
+
+        });
+
+        $('#btnGo').button().on('click', function (evt) {
+            evt.preventDefault();
+            findGene();
+            console.log('findGene');
+            return false;
+        });
+
+        $('#btnDL').button().on('click', function (evt) {
+            evt.preventDefault();
+
+            let data = [];
+
+            data = 'ID\tSYMBOL\n';
+
+            $.each(window.GENES, function(idx, elem) {
+                if (!('symbol' in elem)) {
+                    elem['symbol'] = '';
+                }
+
+                if (!('name' in elem)) {
+                    elem['name'] = '';
+                }
+
+                if (!('synonyms' in elem)) {
+                    elem['synonyms'] = '';
+                } else {
+                    elem['synonyms'] = elem['synonyms'].join(',');
+                }
+
+                data += `"${elem.id}"\t"${elem.chromosome}"\t${elem.start}\t${elem.end}\t"${elem.strand}"\t`;
+                data += `"${elem.symbol}"\t"${elem.name}"\t"${elem.synonyms}"\n`;
+            });
+
+
+            saveAs(new Blob([data]), 'whoa');
+            return false;
+        });
+
+
+    });
+    //-->
+</script>
+
+{% endblock %}
+

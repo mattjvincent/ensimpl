@@ -7,8 +7,9 @@ from flask import url_for
 
 import ensimpl.db_config as db_config
 
-from ensimpl.extensions import debug_toolbar
+#from ensimpl.extensions import debug_toolbar
 from ensimpl.modules.api.views import api
+from ensimpl.modules.lookup.views import lookup
 from ensimpl.modules.navigator.views import navigator
 from ensimpl.modules.page.views import page
 from ensimpl.utils import ReverseProxied
@@ -27,10 +28,9 @@ def create_app(settings_override=None):
     app = Flask(__name__)
 
     app.config.from_object('config.settings')
-    
+
     if app.config.from_envvar('ENSIMPL_SETTINGS', silent=True):
         env_settings = os.environ['ENSIMPL_SETTINGS']
-        print(env_settings)
         app.logger.info('Using ENSIMPL_SETTINGS: {}'.format(env_settings))
 
     if settings_override:
@@ -44,6 +44,7 @@ def create_app(settings_override=None):
     middleware(app)
 
     app.register_blueprint(api)
+    app.register_blueprint(lookup)
     app.register_blueprint(navigator)
     app.register_blueprint(page)
 
@@ -59,7 +60,7 @@ def extensions(app):
     Args:
         app (flask.Flask): The Flask application object.
     """
-    debug_toolbar.init_app(app)
+    #debug_toolbar.init_app(app)
 
     return None
 
@@ -110,3 +111,6 @@ def error_templates(app):
     return None
 
 
+if __name__ == '__main__':
+    print('hi')
+    create_app().run()

@@ -15,7 +15,7 @@ from ensimpl.fetch import genes as get_genes
 @click.option('-i', '--ids', metavar='<ensembl_ids>',
               type=click.Path(exists=True, resolve_path=True,
                               dir_okay=False, writable=False))
-@click.option('-s', '--species', type=click.Choice(['mm', 'hs']))
+@click.option('-s', '--species', type=click.Choice(['Mm', 'Hs']))
 @click.option('--ver', default=None)
 @click.option('-v', '--verbose', count=True)
 def cli(display, ids, species, ver, verbose):
@@ -54,7 +54,8 @@ def cli(display, ids, species, ver, verbose):
     if display in ('tab', 'csv'):
         print('"{}"'.format(delim.join(headers)))
 
-    for r in result:
+    for i in result:
+        r = result[i]
         line = list()
         line.append(r['id'])
         line.append(r.get('ensembl_version', ''))

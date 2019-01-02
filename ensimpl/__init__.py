@@ -2,7 +2,8 @@
 
 """Top-level package for Ensimpl."""
 
-__author__ = """Matthw Vincent"""
+__author__ = """Matthew Vincent"""
 __email__ = 'mvincent@jax.org'
 
-
+import ensimpl.db_config as db_config
+db_config.init()

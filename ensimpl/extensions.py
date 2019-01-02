@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
-from flask_debugtoolbar import DebugToolbarExtension
+#from flask_debugtoolbar import DebugToolbarExtension
 
-debug_toolbar = DebugToolbarExtension()
+#debug_toolbar = DebugToolbarExtension()

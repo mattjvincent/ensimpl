@@ -11,6 +11,7 @@
     
             // Define option defaults
             this.defaults = {
+                base_url: "{{url_for('page.index', _external=True)}}",
                 versions_url: "{{url_for('api.versions', _external=True)}}",
                 search_exact: false,
                 search_limit: 1000,
@@ -101,6 +102,7 @@
           });
       };
     
+
       // Private Methods
     
       function initialize() {

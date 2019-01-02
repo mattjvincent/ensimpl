@@ -160,7 +160,6 @@ def info(version, species_id):
     stats['stats'] = {}
 
     for row in cursor.execute(sql_lookup_stats):
-        print(utils.dictify_row(cursor, row))
         stats['stats'][row['description']] = row['num']
 
     cursor.close()
