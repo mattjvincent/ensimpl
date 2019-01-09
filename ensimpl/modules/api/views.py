@@ -445,7 +445,6 @@ def genes():
     ids = request.values.getlist('ids[]', None)
     full = ensimpl_utils.str2bool(request.values.get('full', 'F'))
     species = request.values.get('species', None)
-    region = request.values.get('region', None)
 
     ret = {'genes': None}
 
@@ -464,7 +463,6 @@ def genes():
         results = genes_ensimpl.get(version=version,
                                     species=species,
                                     ids=ids,
-                                    region=region,
                                     full=full)
 
         if len(results) == 0:

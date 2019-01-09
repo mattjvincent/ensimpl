@@ -19,6 +19,7 @@ SELECT e.ensembl_id gene_id,
        e.start_position gene_start,
        e.end_position gene_end,
        e.strand gene_strand,
+       g.ensembl_id match_id, 
        g.*
   FROM ensembl_genes e,
        ensembl_gtpe g
@@ -26,7 +27,7 @@ SELECT e.ensembl_id gene_id,
 '''
 
 SQL_ID_GENES = '''
-SELECT e.ensembl_id ensembl_id, 
+SELECT distinct e.ensembl_id ensembl_id, 
        e.ensembl_id gene_id,
        e.ensembl_version gene_version,
        e.species_id gene_species_id,
@@ -38,19 +39,15 @@ SELECT e.ensembl_id ensembl_id,
        e.start_position gene_start,
        e.end_position gene_end,
        e.strand gene_strand,
+       g.ensembl_id match_id, 
        'EG' type_key
-  FROM ensembl_genes e
- WHERE 1 = 1
+  FROM ensembl_genes e,
+       ensembl_gtpe g
+ WHERE e.ensembl_id = g.gene_id
 '''
 
 SQL_WHERE_ID = '''
-  AND e.ensembl_id IN (SELECT distinct ensembl_id FROM {})
-'''
-
-SQL_WHERE_REGION = '''
-   AND e.chromosome = :chromosome
-   AND e.start_position <= :end_position
-   AND e.end_position >= :start_position
+  AND g.ensembl_id IN (SELECT distinct ensembl_id FROM {})
 '''
 
 SQL_ORDER_BY_ID = ' ORDER BY e.ensembl_id'
@@ -62,7 +59,7 @@ SQL_ORDER_BY_POSITION = '''
 '''
 
 
-def get(version, species, ids=None, region=None, order='id', full=False):
+def get(version, species, ids=None, order='id', full=False):
     """Get genes matching the ids.
 
         Each match object will contain:
@@ -145,15 +142,6 @@ def get(version, species, ids=None, region=None, order='id', full=False):
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
                                        SQL_WHERE_ID.format(temp_table))
 
-        if region:
-            if isinstance(region, str):
-                region = fetch_utils.str_to_region(region)
-
-            SQL_QUERY = '{} {}'.format(SQL_QUERY, SQL_WHERE_REGION)
-            variables['chromosome'] = region.chromosome
-            variables['start_position'] = region.start_position
-            variables['end_position'] = region.end_position
-
         if order and order.lower() == 'position':
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
                                        SQL_ORDER_BY_POSITION)
@@ -164,8 +152,9 @@ def get(version, species, ids=None, region=None, order='id', full=False):
         for row in cursor.execute(SQL_QUERY, variables):
             gene_id = row['gene_id']
             ensembl_id = row['ensembl_id']
+            match_id = row['match_id']
 
-            gene = results.get(gene_id)
+            gene = results.get(match_id)
 
             if not gene:
                 gene = {'id': gene_id, 'transcripts': {}}
@@ -250,7 +239,7 @@ def get(version, species, ids=None, region=None, order='id', full=False):
             else:
                 LOG.error('Unknown')
 
-            results[gene_id] = gene
+            results[match_id] = gene
 
         cursor.close()
 

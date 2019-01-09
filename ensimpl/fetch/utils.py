@@ -162,6 +162,11 @@ def str_to_region(location):
     multiplier_one = match.group(5)
     multiplier_two = match.group(8)
 
+    print(match.groups())
+
+    print(multiplier_one, get_multiplier(multiplier_one))
+    print(multiplier_two, get_multiplier(multiplier_two))
+
     loc.start_position = int(loc.start_position)
     loc.end_position = int(loc.end_position)
 
