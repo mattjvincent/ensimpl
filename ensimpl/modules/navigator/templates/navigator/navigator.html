@@ -132,6 +132,8 @@
     function findGene() {
         let searchVal = $("#searchTerm").val().trim().toUpperCase();
         let version = $("#selectVersion").val();
+        let species = $("#selectSpecies").val();
+
 
         $("#tblBody").html('');
 
@@ -139,12 +141,7 @@
             return;
         }
 
-        let options = {limit: 100};
-
-        if (version !== "") {
-            options['version'] = version;
-        }
-        //window.ENSIMPL.reconfigure(settings);
+        let options = {limit: 100, species: species, version: version};
 
         window.ENSIMPL.search(searchVal, options, function (data) {
             console.log('data=', data);

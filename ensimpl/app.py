@@ -112,5 +112,5 @@ def error_templates(app):
 
 
 if __name__ == '__main__':
-    print('For debugging only...')
+    print('For debugging only......')
     create_app().run()
