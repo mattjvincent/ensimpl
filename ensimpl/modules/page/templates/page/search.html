@@ -546,20 +546,21 @@
         window.ENSIMPL = new ensimpl();
 
         window.ENSIMPL.versions(function(data) {
-            let versions = {};
+            window.ENSIMPL_VERSIONS = {};
             let species = {};
 
-           $.each(data, function(idx, elem) {
-               versions[elem['version']] = +elem['version'];
-               species[elem['species']] = elem['species'];
-           });
+            $.each(data, function(idx, elem) {
+                window.ENSIMPL_VERSIONS[elem['version']] = elem;
+                species[elem['species']] = elem['species'];
+            });
 
-           let vals = Object.values(versions);
-           vals.sort().reverse();
+            let vals = Object.values(window.ENSIMPL_VERSIONS);
+            vals.sort().reverse();
 
-           $.each(vals, function(key, val) {
-               $("#selectVersion").append('<option value="' + val + '">' + val + '</option>')
-           });
+            $.each(vals, function(key, val) {
+                $("#selectVersion").append('<option value="' + val.version + '">' + val.version + ' - ' + val.assembly_patch + '</option>')
+            });
+
 
            $.each(species, function(key, val) {
                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')

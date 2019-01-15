@@ -79,6 +79,16 @@ def lookup():
     return render_template('page/lookup.html')
 
 
+@page.route("/history")
+def history():
+    """Show the history page.
+
+    Returns:
+        :class:`flask.Response`: The response object.
+    """
+    return render_template('page/history.html')
+
+
 @page.route("/help")
 def help():
     """Show the navigator page.

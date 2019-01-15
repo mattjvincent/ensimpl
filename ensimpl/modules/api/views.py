@@ -625,12 +625,6 @@ def history():
 
     ret = {'request': request_params, 'history': None}
     try:
-        if not ensembl_id:
-            raise ValueError('No ensembl id specified')
-
-        if not species:
-            raise ValueError('No species specified')
-
         results = genes_history.get_history(ensembl_id, species, version_start, version_end)
 
         if len(results) == 0:
@@ -645,6 +639,12 @@ def history():
         return response
 
     return jsonify(ret)
+
+
+
+
+
+
 
 
 

@@ -7,7 +7,7 @@ import ensimpl.utils as utils
 LOG = utils.get_logger()
 
 
-def get_history(id, species, version_start=None, version_end=None, full=False):
+def get_history(ensembl_id, species, version_start=None, version_end=None, full=False):
     """Get a genes history.
 
     Args:
@@ -37,7 +37,7 @@ def get_history(id, species, version_start=None, version_end=None, full=False):
 
         for ver in range(version_start, version_end + 1):
             try:
-                gene_history[ver] = genes.get(ver, species, [id])
+                gene_history[ver] = genes.get([ensembl_id], species, ver)
             except ValueError as ve:
                 LOG.debug(ve)
 
