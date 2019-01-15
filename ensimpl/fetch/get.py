@@ -8,12 +8,12 @@ import ensimpl.fetch.utils as fetch_utils
 LOG = utils.get_logger()
 
 
-def chromosomes(version, species_id):
+def chromosomes(species_id=None, version=None):
     """Get the chromosomes.
 
     Args:
-        version (int): The Ensembl version.
         species_id (str): The Ensembl species identifier.
+        version (int): The Ensembl version.
 
     Returns:
         list: A ``list`` of ``dicts`` with the following keys:
@@ -25,7 +25,7 @@ def chromosomes(version, species_id):
     sql_chromosomes = 'SELECT * FROM chromosomes '
     sql_order = ' ORDER BY chromosome_num '
 
-    conn = fetch_utils.connect_to_database(version, species_id)
+    conn = fetch_utils.connect_to_database(species_id, version)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -43,12 +43,12 @@ def chromosomes(version, species_id):
     return chroms
 
 
-def karyotypes(version, species_id):
+def karyotypes(species_id=None, version=None):
     """Get the karyotypes.
 
     Args:
-        version (int): Ensembl version or None for latest
         species_id (str): the species identifier
+        version (int): Ensembl version or None for latest
 
     Returns:
         list: A ``list`` element with a ``dict`` with the following keys:
@@ -65,7 +65,7 @@ def karyotypes(version, species_id):
                       ' WHERE k.chromosome = c.chromosome ')
     sql_order = ' ORDER BY c.chromosome_num, k.seq_region_start '
 
-    conn = fetch_utils.connect_to_database(version, species_id)
+    conn = fetch_utils.connect_to_database(species_id, version)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -90,12 +90,12 @@ def karyotypes(version, species_id):
     return list(karyotype_data.values())
 
 
-def meta(version, species_id):
+def meta(species_id=None, version=None):
     """Get the database meta information..
 
     Args:
-        version (int): Ensembl version.
         species_id (str): Ensembl species identifier.
+        version (int): Ensembl version or None for latest.
 
     Returns:
         dict: A ``dict`` with the following keys:
@@ -107,33 +107,33 @@ def meta(version, species_id):
     sql_meta = '''
         SELECT distinct meta_key meta_key, meta_value, species_id
           FROM meta_info
-         WHERE species_id = :species_id 
          ORDER BY meta_key
     '''
 
-    conn = fetch_utils.connect_to_database(version, species_id)
+    conn = fetch_utils.connect_to_database(species_id, version)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    meta_info = {'species': species_id}
+    meta_data = {}
 
-    for row in cursor.execute(sql_meta, {'species_id': species_id}):
+    for row in cursor.execute(sql_meta):
+        meta_data['species'] = row['species_id']
 
         for val in ['version', 'assembly', 'assembly_patch']:
             if row['meta_key'] == val:
-                meta_info[val] = row['meta_value']
+                meta_data[val] = row['meta_value']
 
     cursor.close()
 
-    return meta_info
+    return meta_data
 
 
-def info(version, species_id):
+def info(species_id=None, version=None):
     """Get information for the version.
 
     Args:
-        version (int): Ensembl version or None for latest
         species_id (str): the species identifier
+        version (int): Ensembl version or None for latest
 
     Returns:
         dict: A ``dict`` with the following keys:
@@ -143,7 +143,7 @@ def info(version, species_id):
             * stats - informational counts about the database
             * version
     """
-    stats = meta(version, species_id)
+    stats = meta(species_id, version)
 
     sql_lookup_stats = '''
         SELECT count(egl.lookup_value) num, sr.description 
@@ -153,7 +153,7 @@ def info(version, species_id):
          ORDER BY sr.score desc
     '''
 
-    conn = fetch_utils.connect_to_database(version, species_id)
+    conn = fetch_utils.connect_to_database(species_id, version)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 

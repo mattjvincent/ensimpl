@@ -41,7 +41,7 @@ def cli(display, ids, species, ver, verbose):
 
     tstart = time.time()
 
-    result = get_genes.get(ver, species, ensembl_ids, True)
+    result = get_genes.get(ensembl_ids, species, ver, True)
     tend = time.time()
 
     headers = ['ID', 'VERSION', 'SPECIES', 'SYMBOL', 'NAME', 'SYNONYMS',

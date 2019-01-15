@@ -1,23 +1,19 @@
 {% extends 'layouts/base.html' %}
 
-{% block title %}Gene Lookup{% endblock %}
+{% block title %}ensimpl API{% endblock %}
 
 {% block head %}
-<!-- Bootstrap CSS -->
-<link rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
-      integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
-      crossorigin="anonymous">
-    <style>
-    </style>
 {% endblock %}
 
 {% block body %}
 
-<div class="container h-100">
+{% include 'page/nav.html' %}
 
-    <h1>Gene Lookup</h1>
-    <p class="lead"></p>
+<div class="container-fluid">
+
+    <h1>ensimpl Search</h1>
+    <p class="lead">Basic search utilizing the ensimpl API.</p>
+
 
     <div class="row">
         <div class="col">
@@ -26,7 +22,7 @@
                 <div class="col">
 
                     <div class="card bg-light h-100">
-                        <div class="card-header font-weight-bold">Ensimpl Settings</div>
+                        <div class="card-header font-weight-bold">ensimpl Input</div>
                         <div class="card-body">
                             <div class="form-group row">
                                 <label for="selectVersion" class="col-4 col-form-label">Species</label>
@@ -43,9 +39,9 @@
                                 </div>
                             </div>
                             <div class="form-group row">
-                                <label for="fields" class="col-4 col-form-label">IDs</label>
+                                <label for="fields" class="col-4 col-form-label">Term</label>
                                 <div class="col-8">
-                                    <textarea id="identifiers" class="form-control form-control-sm" rows="7"></textarea>
+                                    <input type="text" id="searchTerm" class="form-control form-control-sm"/>
                                 </div>
                             </div>
 
@@ -125,46 +121,29 @@
                                         </label>
                                     </div>
                                     <div class="form-check m-0">
-                                        <input class="form-check-input" type="checkbox" checked="checked" value="synonyms" id="column_gene_synonyms">
+                                        <input class="form-check-input" type="checkbox" value="synonyms" id="column_gene_synonyms">
                                         <label class="form-check-label" for="column_gene_synonyms">
                                             Gene Synonyms
                                         </label>
                                     </div>
                                     <div class="form-check m-0">
-                                        <input class="form-check-input" type="checkbox" checked="checked" value="external_ids" id="column_external_ids">
+                                        <input class="form-check-input" type="checkbox" value="external_ids" id="column_external_ids">
                                         <label class="form-check-label" for="column_external_ids">
                                             External ID
                                         </label>
                                     </div>
-                                    <!--
-                                    <select class="form-control form-control-sm" id="fields" multiple>
-                                        <option value="input_id" selected>Input ID</option>
-                                        <option value="gene_id" selected>Gene ID</option>
-                                        <option value="gene_symbol" selected>Gene Symbol</option>
-                                        <option value="gene_description" selected>Gene Description</option>
-                                        <option value="gene_location" selected>Gene Location</option>
-                                        <option value="gene_strand">Gene Strand</option>
-                                        <option value="gene_synonyms">Gene Synonyms</option>
-                                        <option value="external_id">External ID</option>
-                                    </select>
-                                    //-->
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <div class="col-1">
-                                </div>
-
-                                <div class="col-11">
-
-
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" checked="checked" value="" id="include_all">
-                                            <label class="form-check-label active" for="include_all">
-                                                Include input IDs that are not found
-                                            </label>
-                                        </div>
-
-
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input" type="checkbox" checked="checked" value="match_reason" id="column_match_reason">
+                                        <label class="form-check-label" for="column_match_reason">
+                                            Match Reason
+                                        </label>
+                                    </div>
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input" type="checkbox" checked="checked" value="match_value" id="column_match_value">
+                                        <label class="form-check-label" for="column_match_value">
+                                            Match Value
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                                 </div>
@@ -209,31 +188,18 @@
 
 </div>
 
+</div>
+
 {% endblock %}
 
 {% block javascript %}
-<script src="//code.jquery.com/jquery-3.2.1.min.js"
-        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
-        crossorigin="anonymous"></script>
-
-<script src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"
-        integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
-        crossorigin="anonymous"></script>
-
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"
-        integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ"
-        crossorigin="anonymous"></script>
 
 <script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
-
 <script src="{{ url_for('static', filename='js/Blob.js', _external=True) }}"></script>
 <script src="{{ url_for('static', filename='js/FileSaver.js', _external=True) }}"></script>
 
-
 <script>
-
     <!--
-
     function nvl(val, def) {
         if (val === '') {
             return def;
@@ -246,21 +212,22 @@
      * Perform Ensimpl search.
      */
     function findGene() {
-        let identifiers = $("#identifiers").val().trim().toUpperCase().split("\n");
-        let species = $("#selectSpecies").val();
+        let searchVal = $("#searchTerm").val().trim().toUpperCase();
         let version = $("#selectVersion").val();
+        let species = $("#selectSpecies").val();
 
-        $("#searchTable").html('');
+        $("#tblBody").html('');
 
-        if (identifiers.length === 0) {
-            identifiers = null;
+        if (searchVal.length === 0) {
+            return;
         }
 
-        let data = {
-            'species': species,
-            'version': version,
-            'ids': identifiers
-        };
+        let options = {species: species,
+                       limit: 100};
+
+        if (version !== "") {
+            options['version'] = version;
+        }
 
         let selectionsTemp = $('[id^="column_"]');
         let selections = [];
@@ -275,172 +242,160 @@
             return;
         }
 
-
         $('#dl').hide();
-        window.GENES = {};
+        window.SEARCHRESULTS = {};
 
-        $.ajax({
-              url: '{{ url_for('api.genes', _external=True) }}',
-              type: "POST",
-              data: data
-          }).done(function (data, textStatus, jqXHR) {
-                //console.log('data=', data);
-                window.GENES = data.genes || {};
-                let numGenes = 0;
+        window.ENSIMPL.search(searchVal, options, function (data) {
+            console.log('data=', data);
+
+            window.SEARCHRESULTS = data || {};
+            let numGenes = 0;
 
 
-                let h = '<table class="table table-striped"><thead><tr>';
-                let defaultValue = $('#emptystring').val();
+            let h = '<table class="table table-striped"><thead><tr>';
+            let defaultValue = $('#emptystring').val();
 
 
-                h += '<th class="" scope="col">ID</th>';
+            $.each(selections, function(idx, elem) {
 
-                $.each(selections, function(idx, elem) {
+                if (elem.value === 'gene_id') {
+                    h += '<th class="" scope="col">Gene ID</th>';
+                } else if (elem.value === 'symbol') {
+                    h += '<th class="" scope="col">Symbol</th>';
+                } else if (elem.value === 'description') {
+                    h += '<th class="" scope="col">Description</th>';
+                } else if (elem.value === 'location') {
+                    h += '<th class="" scope="col">Location</th>';
+                } else if (elem.value === 'strand') {
+                    h += '<th class="" scope="col">Strand</th>';
+                } else if (elem.value === 'synonyms') {
+                    h += '<th class="" scope="col">Synonyms</th>';
+                } else if (elem.value === 'external_ids') {
+                    h += '<th class="" scope="col">External ID</th>';
+                } else if (elem.value === 'match_reason') {
+                    h += '<th class="" scope="col">Match Reason</th>';
+                } else if (elem.value === 'match_value') {
+                    h += '<th class="" scope="col">Match Value</th>';
+                }
+            });
 
-                    if (elem.value === 'gene_id') {
-                        h += '<th class="" scope="col">Gene ID</th>';
-                    } else if (elem.value === 'symbol') {
-                        h += '<th class="" scope="col">Symbol</th>';
-                    } else if (elem.value === 'description') {
-                        h += '<th class="" scope="col">Description</th>';
-                    } else if (elem.value === 'location') {
-                        h += '<th class="" scope="col">Location</th>';
-                    } else if (elem.value === 'strand') {
-                        h += '<th class="" scope="col">Strand</th>';
-                    } else if (elem.value === 'synonyms') {
-                        h += '<th class="" scope="col">Synonyms</th>';
-                    } else if (elem.value === 'external_id') {
-                        h += '<th class="" scope="col">External ID</th>';
-                    }
-                });
+            h += '</tr></thead><tbody id="tblBody"></tbody></table>';
 
-                h += '</tr></thead><tbody id="tblBody"></tbody></table>';
+            $('#searchTable').html(h);
 
-                $('#searchTable').html(h);
+            $.each(window.SEARCHRESULTS.result.matches, function(idx, elem) {
 
-                $.each(identifiers, function(idx, lookup) {
-                    if (numGenes < 100) {
-                        let h2 = '';
-                        //console.log(lookup);
-                        h2 += '<td>' + lookup + '</td>';
-                            if ((lookup in data.genes) || ($('#include_all').is(':checked'))) {
-                                let elem = data.genes[lookup] || {};
+                if (numGenes < 100) {
+                    let h2 = '';
+                    //console.log(lookup);
 
-                                $.each(selections, function(idx2, elem2) {
+                            //let elem = data.ids[lookup] || {};
 
-                                    if (elem2.value === 'gene_id') {
-                                        if ('id' in elem) {
-                                            h2 += '<td>' + nvl(elem.id, defaultValue) + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
-                                    } else if (elem2.value === 'symbol') {
-                                        if ('symbol' in elem) {
-                                            h2 += '<td>' + nvl(elem.symbol, defaultValue) + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
-                                    } else if (elem2.value === 'description') {
-                                        if ('name' in elem) {
-                                            h2 += '<td>' + nvl(elem.name, defaultValue) + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
-                                    } else if (elem2.value === 'location') {
-                                        if (('chromosome' in elem) && ('start' in elem) && ('end' in elem)) {
-                                            h2 += '<td>' + elem.chromosome + ':' + elem.start + '-' + elem.end + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
+                            $.each(selections, function(idx2, elem2) {
 
-                                    } else if (elem2.value === 'strand') {
-                                        if ('strand' in elem) {
-                                            h2 += '<td>' + nvl(elem.strand, defaultValue) + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
-                                    } else if (elem2.value === 'synonyms') {
-                                        if ('synonyms' in elem) {
-                                            let synonyms = elem['synonyms'].join(':');
-                                            h2 += '<td>' + nvl(synonyms, defaultValue) + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
-
-                                    } else if (elem2.value === 'external_ids') {
-                                        if ('external_ids' in elem) {
-                                            let external_ids = null;
-
-                                            $.each(elem.external_ids, function(i, e) {
-                                                if ((e['db'] === 'MGI') || (e['db'] === 'HGNC')) {
-                                                    external_ids = e['db_id'];
-                                                }
-                                            });
-
-                                            h2 += '<td>' + nvl(external_ids, defaultValue) + '</td>';
-                                        } else {
-                                            h2 += '<td>' + defaultValue + '</td>';
-                                        }
+                                if (elem2.value === 'gene_id') {
+                                    if ('ensembl_gene_id' in elem) {
+                                        h2 += '<td>' + nvl(elem.ensembl_gene_id, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
                                     }
-                            });
-                            $("#tblBody").append('<tr>' + h2 + '</tr>');
-                            numGenes++;
-                        }
-                    }
+                                } else if (elem2.value === 'symbol') {
+                                    if ('symbol' in elem) {
+                                        h2 += '<td>' + nvl(elem.symbol, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                } else if (elem2.value === 'description') {
+                                    if ('name' in elem) {
+                                        h2 += '<td>' + nvl(elem.name, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                } else if (elem2.value === 'location') {
+                                    if (('chromosome' in elem) && ('position_start' in elem) && ('position_end' in elem)) {
+                                        h2 += '<td>' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
 
-                });
+                                } else if (elem2.value === 'strand') {
+                                    if ('strand' in elem) {
+                                        h2 += '<td>' + nvl(elem.strand, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                } else if (elem2.value === 'synonyms') {
+                                    if ('synonyms' in elem) {
+                                        let synonyms = elem['synonyms'].join(':');
+                                        h2 += '<td>' + nvl(synonyms, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+
+                                } else if (elem2.value === 'external_ids') {
+                                    if ('external_ids' in elem) {
+                                        let external_ids = null;
+
+                                        $.each(elem.external_ids, function(i, e) {
+                                            if ((e['db'] === 'MGI') || (e['db'] === 'HGNC')) {
+                                                external_ids = e['db_id'];
+                                            }
+                                        });
+
+                                        h2 += '<td>' + nvl(external_ids, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                } else if (elem2.value === 'match_reason') {
+                                    if ('match_reason' in elem) {
+                                        h2 += '<td>' + nvl(elem.match_reason, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                } else if (elem2.value === 'match_value') {
+                                    if ('match_value' in elem) {
+                                        h2 += '<td>' + nvl(elem.match_value, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                }
+
+                        });
+                        $("#tblBody").append('<tr>' + h2 + '</tr>');
+                        numGenes++;
+
+                        }
+
+                    });
 
                 let message = '';
 
-                if (identifiers.length > 0) {
-                    message = identifiers.length + ' identifiers entered, ';
-                }
-
-                numGenes = Object.keys(window.GENES).length;
-
-                if (numGenes === 0) {
+                if (window.SEARCHRESULTS.result.num_results === 0) {
                     message += 'No matches found';
                     $('#dl').hide();
-                } else if (numGenes === 1) {
+                } else if (window.SEARCHRESULTS.result.num_results === 1) {
                     message += '1 match found';
                     $('#dl').show();
-                } else if (numGenes > 100) {
-                    message += numGenes + ' matches found, displaying first 100';
+                } else if (window.SEARCHRESULTS.result.num_results > 100) {
+                    message += window.SEARCHRESULTS.result.num_results + ' matches found, displaying first 100';
                     $('#dl').show();
                 } else {
-                    message += numGenes + ' matches found';
+                    message += window.SEARCHRESULTS.result.num_results + ' matches found';
                     $('#dl').show();
                 }
+
 
                 $("#searchStatus").html(message);
 
-          }).fail(function (jqXHR, textStatus, errorThrown) {
-              console.error('Ensimpl fail');
-              console.error('jqXHR', jqXHR);
-              console.error('textStatus', textStatus);
-              console.error('errorThrown', errorThrown);
-          });
 
 
+
+
+
+        });
     }
 
-
-    function onSelected(selection) {
-        $("#searchTerm").val(selection.chr + ":" + selection.start + "-" + selection.end);
-        findGene();
-    }
-
-    function loadData(data, fileName) {
-        //var blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
-        //FileSaver.saveAs(blob, fileName);
-    }
-
-    function saveData(data, fileName) {
-        var blob = new Blob(data, {type: "text/plain;charset=utf-8"});
-        FileSaver.saveAs(blob, fileName);
-    }
-
-    function getDateString() {
+        function getDateString() {
         let date = new Date();
         let year = date.getFullYear();
         let month = `${date.getMonth() + 1}`.padStart(2, '0');
@@ -452,53 +407,11 @@
     }
 
 
-
-    $().ready(function () {
-        $("#dl").hide();
-
-
-
-        window.GENES = null;
-
-        window.ENSIMPL = new ensimpl();
-
-        window.ENSIMPL.versions(function(data) {
-            window.ENSIMPL_VERSIONS = {};
-            let species = {};
-
-            $.each(data, function(idx, elem) {
-                console.log(idx, elem);
-                window.ENSIMPL_VERSIONS[elem['version']] = elem;
-                species[elem['species']] = elem['species'];
-            });
-
-            let vals = Object.values(window.ENSIMPL_VERSIONS);
-            vals.sort().reverse();
-
-            $.each(vals, function(key, val) {
-                $("#selectVersion").append('<option value="' + val.version + '">' + val.version + ' - ' + val.assembly_patch + '</option>')
-            });
-
-            $.each(species, function(key, val) {
-                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
-            });
-
-            $('#selectSpecies').val('Mm');
-
-        });
-
-        $('#btnGo').button().on('click', function (evt) {
-            evt.preventDefault();
-            findGene();
-            console.log('findGene');
-            return false;
-        });
-
-        $('#btnDL').button().on('click', function (evt) {
+       $('#btnDL').button().on('click', function (evt) {
             evt.preventDefault();
 
             let defaultValue = $('#emptystring').val();
-            let header = ['"ID"'];
+            let header = [];
             let selectionsTemp = $('[id^="column_"]');
             let selections = [];
 
@@ -529,26 +442,28 @@
                     header.push('"Gene Synonyms"');
                 } else if (elem.value === 'external_ids') {
                     header.push('"External ID"');
+                } else if (elem.value === 'match_reason') {
+                    header.push('"Match Reason"');
+                } else if (elem.value === 'match_value') {
+                    header.push('"Match Value"');
                 }
             });
 
             let data = header.join("\t") + '\n';
 
-            let identifiers = $("#identifiers").val().trim().toUpperCase().split("\n");
 
-            $.each(identifiers, function(idx, lookup) {
-                if ((lookup in window.GENES) || ($('#include_all').is(':checked'))) {
-                    let elem = window.GENES[lookup] || {};
+            $.each(window.SEARCHRESULTS.result.matches, function(idx, elem) {
+
 
                     //console.log(elem);
 
-                    let val = ['"' + lookup + '"'];
+                    let val = [];
 
                     $.each(selections, function(idx2, elem2) {
 
                         if (elem2.value === 'gene_id') {
-                            if ('id' in elem) {
-                                val.push('"' + nvl(elem.id, defaultValue) + '"');
+                            if ('ensembl_gene_id' in elem) {
+                                val.push('"' + nvl(elem.ensembl_gene_id, defaultValue) + '"');
                             } else {
                                 val.push('"' + defaultValue + '"');
                             }
@@ -565,10 +480,10 @@
                                 val.push('"' + defaultValue + '"');
                             }
                         } else if (elem2.value === 'location') {
-                            if (('chromosome' in elem) && ('start' in elem) && ('end' in elem)) {
+                            if (('chromosome' in elem) && ('position_start' in elem) && ('position_end' in elem)) {
                                 val.push('"' + elem.chromosome + '"');
-                                val.push(elem.start);
-                                val.push(elem.end);
+                                val.push(elem.position_start);
+                                val.push(elem.position_end);
                             } else {
                                 val.push('"' + defaultValue + '"');
                             }
@@ -599,24 +514,78 @@
                             } else {
                                 val.push('"' + defaultValue + '"');
                             }
+                        } else if (elem2.value === 'match_reason') {
+                            if ('match_reason' in elem) {
+                                val.push('"' + nvl(elem.match_reason, defaultValue) + '"');
+                            } else {
+                                val.push('"' + defaultValue + '"');
+                            }
+                        } else if (elem2.value === 'match_value') {
+                            if ('match_value' in elem) {
+                                val.push('"' + nvl(elem.match_value, defaultValue) + '"');
+                            } else {
+                                val.push('"' + defaultValue + '"');
+                            }
                         }
                     });
 
                     data += (val.join('\t') + '\n');
-                }
+
             });
 
-            let fileName = "gene_lookup_" + $("#selectVersion").val() + "_" + getDateString() + ".tsv";
+            let fileName = "ensimpl_search_" + $("#selectVersion").val() + "_" + getDateString() + ".tsv";
 
 
             saveAs(new Blob([data]), fileName);
             return false;
         });
 
+    $().ready(function () {
+        $("#dl").hide();
 
+        window.ENSIMPL = new ensimpl();
+
+        window.ENSIMPL.versions(function(data) {
+            let versions = {};
+            let species = {};
+
+           $.each(data, function(idx, elem) {
+               versions[elem['version']] = +elem['version'];
+               species[elem['species']] = elem['species'];
+           });
+
+           let vals = Object.values(versions);
+           vals.sort().reverse();
+
+           $.each(vals, function(key, val) {
+               $("#selectVersion").append('<option value="' + val + '">' + val + '</option>')
+           });
+
+           $.each(species, function(key, val) {
+               $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+           });
+
+            $('#selectSpecies').val('Mm');
+
+
+        });
+
+        $('#searchTerm').keypress(function (evt) {
+            let code = evt.which ? evt.which : evt.keyCode;
+            if (code === 13) {
+                $(this).blur();
+                $('#btnGo').focus().click();
+            }
+        });
+
+        $('#btnGo').button().on('click', function (evt) {
+            evt.preventDefault();
+            findGene();
+            console.log('findGene');
+            return false;
+        });
     });
     //-->
 </script>
 
 {% endblock %}
-

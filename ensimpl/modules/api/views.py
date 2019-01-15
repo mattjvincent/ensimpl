@@ -12,7 +12,9 @@ import ensimpl.utils as ensimpl_utils
 
 from ensimpl.fetch import get
 from ensimpl.fetch import genes as genes_ensimpl
+from ensimpl.fetch import history as genes_history
 from ensimpl.fetch import search as search_ensimpl
+from ensimpl.fetch import utils as fetch_utils
 
 api = Blueprint('api', __name__, template_folder='templates', url_prefix='/api')
 
@@ -76,7 +78,7 @@ def versions():
 
     try:
         for it in db_config.ENSIMPL_DBS:
-            meta = get.meta(it['version'], it['species'])
+            meta = get.meta(it['species'], it['version'])
             version_info.append(meta)
     except Exception as e:
         response = jsonify(message=str(e))
@@ -122,19 +124,13 @@ def info():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    version = request.values.get('version', None)
     species = request.values.get('species', None)
+    version = request.values.get('version', None)
 
     ret = {}
 
     try:
-        if not version:
-            raise ValueError('No version specified')
-
-        if not species:
-            raise ValueError('No species specified')
-
-        info = get.info(version, species)
+        info = get.info(species, version)
         ret['info'] = info
 
     except Exception as e:
@@ -179,23 +175,19 @@ def chromosomes():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    version = request.values.get('version', None)
     species = request.values.get('species', None)
+    version = request.values.get('version', None)
 
     ret = {'version': None, 'species': None, 'chromosomes': None}
 
     try:
-        if not version:
-            raise ValueError('No version specified')
-
-        if not species:
-            raise ValueError('No species specified')
-
-        meta = get.meta(version, species)
+        meta = get.meta(species, version)
         ret['version'] = meta['version']
         ret['species'] = meta['species']
+        ret['assembly'] = meta['assembly']
+        ret['assembly_patch'] = meta['assembly_patch']
 
-        all_chromosomes = get.chromosomes(version, species)
+        all_chromosomes = get.chromosomes(species, version)
 
         ret['chromosomes'] = all_chromosomes
 
@@ -253,23 +245,19 @@ def karyotypes():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    version = request.values.get('version', None)
     species = request.values.get('species', None)
+    version = request.values.get('version', None)
 
     ret = {'version': None, 'chromosomes': {}}
 
     try:
-        if not version:
-            raise ValueError('No version specified')
-
-        if not species:
-            raise ValueError('No species specified')
-
-        meta = get.meta(version, species)
+        meta = get.meta(species, version)
         ret['version'] = meta['version']
         ret['species'] = meta['species']
+        ret['assembly'] = meta['assembly']
+        ret['assembly_patch'] = meta['assembly_patch']
 
-        all_karyotypes = get.karyotypes(version, species)
+        all_karyotypes = get.karyotypes(species, version)
         ret['chromosomes'] = all_karyotypes
 
     except Exception as e:
@@ -340,24 +328,19 @@ def gene():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    version = request.values.get('version', None)
     species = request.values.get('species', None)
+    version = request.values.get('version', None)
     id = request.values.get('id', None)
+    full = ensimpl_utils.str2bool(request.values.get('full', 0))
 
     ret = {'gene': None}
 
     try:
-        if not version:
-            raise ValueError('No version specified')
-
-        if not species:
-            raise ValueError('No species specified')
-
         if not id:
             raise ValueError('No id specified')
 
         results = genes_ensimpl.get(ids=[id],
-                                    full=True,
+                                    full=full,
                                     version=version,
                                     species=species)
 
@@ -381,6 +364,7 @@ def gene():
 
 
 @api.route("/genes", methods=['POST'])
+@support_jsonp
 def genes():
     """Get the information for an Ensembl gene.
 
@@ -441,24 +425,33 @@ def genes():
     """
     current_app.logger.debug('Call for: POST {}'.format(request.url))
 
-    version = request.values.get('version', None)
-    ids = request.values.getlist('ids[]', None)
-    full = ensimpl_utils.str2bool(request.values.get('full', 'F'))
-    species = request.values.get('species', None)
+    version = None
+    species = None
+    ids = None
+    full = False
 
-    ret = {'genes': None}
+    if request.is_json:
+        if 'version' in request.json:
+            version = request.json['version']
+        if 'species' in request.json:
+            species = request.json['species']
+        if 'ids[]' in request.json:
+            ids = request.json['ids[]']
+        if 'full' in request.json:
+            full = ensimpl_utils.str2bool(request.json['full'])
+    else:
+        version = request.values.get('version', None)
+        ids = request.values.getlist('ids[]', None)
+        full = ensimpl_utils.str2bool(request.values.get('full', 'F'))
+        species = request.values.get('species', None)
 
-    if len(ids) == 0:
-        ids = None
-    elif len(ids) == 1 and len(ids[0]) == 0:
-        ids = None
+    ret = {'ids': None}
 
     try:
-        if not version:
-            raise ValueError('No version specified')
-
-        if not species:
-            raise ValueError('No species specified')
+        if len(ids) == 0:
+            raise ValueError('No ids specified')
+        elif len(ids) == 1 and len(ids[0]) == 0:
+            raise ValueError('No ids specified')
 
         results = genes_ensimpl.get(version=version,
                                     species=species,
@@ -469,7 +462,7 @@ def genes():
             current_app.logger.info("No results found")
             return jsonify(ret)
 
-        ret['genes'] = results
+        ret['ids'] = results
 
     except Exception as e:
         print(str(e))
@@ -567,13 +560,8 @@ def search():
     ret = {'request': request_params, 'result': {'num_results': 0,
                                                  'num_matches': 0,
                                                  'matches': None}}
+
     try:
-        if not version:
-            raise ValueError('No version specified')
-
-        if not species:
-            raise ValueError('No species specified')
-
         results = search_ensimpl.search(term=term,
                                         version=version,
                                         species=species,
@@ -596,6 +584,76 @@ def search():
         return response
 
     return jsonify(ret)
+
+
+@api.route("/history")
+@support_jsonp
+def history():
+    """Perform a search of an Ensimpl Identifier.
+
+    The following is a list of the valid parameters:
+
+    id, species, version_start=None, version_end=None, full=False):
+
+    =============  =======  ===================================================
+    Param          Type     Description
+    =============  =======  ===================================================
+    id             string   the Ensembl id
+    species        string   the species identifier (example 'Hs', 'Mm')
+    version_start  integer  the start version to search for
+    version_end    integer  the end version to search for
+    =============  =======  ===================================================
+
+    If sucessful, a JSON response will be returned with the following elements:
+
+
+    Returns:
+        :class:`flask.Response`: The response which is a JSON response.
+    """
+    current_app.logger.debug('Call for: {}'.format(request.url))
+
+    ensembl_id = request.values.get('id', None)
+    species = request.values.get('species', None)
+
+    version_start = fetch_utils.nvli(request.values.get('version_start', None), None)
+    version_end = fetch_utils.nvli(request.values.get('version_end', None), None)
+
+    request_params = {'ensembl_id': ensembl_id, 'species': species,
+                      'version_start': version_start, 'version_end': version_end}
+
+    current_app.logger.debug('PARAMS: {}'.format(request_params))
+
+    ret = {'request': request_params, 'history': None}
+    try:
+        if not ensembl_id:
+            raise ValueError('No ensembl id specified')
+
+        if not species:
+            raise ValueError('No species specified')
+
+        results = genes_history.get_history(ensembl_id, species, version_start, version_end)
+
+        if len(results) == 0:
+            current_app.logger.info('No results found')
+            return jsonify(ret)
+
+        ret['history'] = results
+
+    except Exception as e:
+        response = jsonify(message=str(e))
+        response.status_code = 500
+        return response
+
+    return jsonify(ret)
+
+
+
+
+
+
+
+
+
 
 
 

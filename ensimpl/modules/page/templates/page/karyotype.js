@@ -226,7 +226,7 @@
                 console.log(d);
                 return d.length;
             });
-            console.log(that.maxLength);
+            console.log('maxLength=', that.maxLength);
 
             var xScale = d3.scale.linear().domain([0, that.maxLength]).range([0, that.settings.width]);
             var yScale = d3.scale.ordinal().domain(d3.range(chroms.length)).rangeBands([0, that.settings.height], .5);
@@ -482,7 +482,7 @@
     karyotype.prototype.getXAxisTickValues = function () {
         var vals = [];
         vals.push(0);
-        while (vals[vals.length - 1] < 200000000) {
+        while (vals[vals.length - 1] < 260000000) {
             vals.push(vals.length * 20000000);
         }
         return vals;

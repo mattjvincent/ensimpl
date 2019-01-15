@@ -2,8 +2,6 @@
 import re
 import sqlite3
 
-from collections import OrderedDict
-
 import ensimpl.utils as utils
 import ensimpl.db_config as db_config
 
@@ -51,17 +49,23 @@ class Region:
                                       self.end_position)
 
 
-def connect_to_database(version, species):
+def connect_to_database(species=None, version=None):
     """Connect to the Ensimpl database.
 
     Args:
-        version (int): The Ensembl version number.
-        species (str): The Ensembl species identifier.
+        species (str): The Ensembl species identifier, None defaults to 'Mm'.
+        version (int): The Ensembl version number, None defaults to latest.
 
     Returns:
         a connection to the database
     """
     try:
+        if species is None:
+            species = 'Mm'
+
+        if version is None:
+            version = max(db['version'] for db in db_config.ENSIMPL_DBS)
+
         database = db_config.get_ensimpl_db(version, species)['db']
         return sqlite3.connect(database)
     except Exception as e:

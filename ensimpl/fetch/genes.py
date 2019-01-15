@@ -1,56 +1,62 @@
 # -*- coding: utf_8 -*-
 import sqlite3
 
-import ensimpl.utils as utils
 import ensimpl.fetch.utils as fetch_utils
+import ensimpl.utils as utils
 
 LOG = utils.get_logger()
 
 
 SQL_ID_FULL = '''
-SELECT e.ensembl_id gene_id,
-       e.ensembl_version gene_version,
-       e.species_id gene_species_id,
-       e.symbol gene_symbol,
-       e.name gene_name,
-       e.synonyms gene_synonyms,
-       e.external_ids gene_external_ids,
-       e.chromosome gene_chromosome,
-       e.start_position gene_start,
-       e.end_position gene_end,
-       e.strand gene_strand,
-       g.ensembl_id match_id, 
-       g.*
-  FROM ensembl_genes e,
-       ensembl_gtpe g
- WHERE e.ensembl_id = g.gene_id
+SELECT t.ensembl_id match_id,
+       g.ensembl_id gene_id,
+       g.ensembl_version gene_version,
+       g.species_id gene_species_id,
+       g.symbol gene_symbol,
+       g.name gene_name,
+       g.synonyms gene_synonyms,
+       g.external_ids gene_external_ids,
+       g.chromosome gene_chromosome,
+       g.start_position gene_start,
+       g.end_position gene_end,
+       g.strand gene_strand,
+       r.*
+  FROM ensembl_genes g,
+       ensembl_gtpe r,
+       (SELECT eg.gene_id, eg.ensembl_id 
+          FROM ensembl_gtpe eg
+         WHERE eg.ensembl_id in (SELECT ensembl_id 
+                                   FROM {})) t       
+ WHERE g.ensembl_id = r.gene_id
+   AND r.gene_id = t.gene_id
 '''
 
 SQL_ID_GENES = '''
-SELECT distinct e.ensembl_id ensembl_id, 
-       e.ensembl_id gene_id,
-       e.ensembl_version gene_version,
-       e.species_id gene_species_id,
-       e.symbol gene_symbol,
-       e.name gene_name,
-       e.synonyms gene_synonyms,
-       e.external_ids gene_external_ids,
-       e.chromosome gene_chromosome,
-       e.start_position gene_start,
-       e.end_position gene_end,
-       e.strand gene_strand,
-       g.ensembl_id match_id, 
+SELECT distinct t.ensembl_id match_id,
+       g.ensembl_id ensembl_id, 
+       g.ensembl_id gene_id,
+       g.ensembl_version gene_version,
+       g.species_id gene_species_id,
+       g.symbol gene_symbol,
+       g.name gene_name,
+       g.synonyms gene_synonyms,
+       g.external_ids gene_external_ids,
+       g.chromosome gene_chromosome,
+       g.start_position gene_start,
+       g.end_position gene_end,
+       g.strand gene_strand,
        'EG' type_key
-  FROM ensembl_genes e,
-       ensembl_gtpe g
- WHERE e.ensembl_id = g.gene_id
+  FROM ensembl_genes g,
+       ensembl_gtpe r,
+       (SELECT eg.gene_id, eg.ensembl_id 
+          FROM ensembl_gtpe eg
+         WHERE eg.ensembl_id in (SELECT ensembl_id 
+                                   FROM {})) t       
+ WHERE g.ensembl_id = r.ensembl_id
+   AND r.gene_id = t.gene_id
 '''
 
-SQL_WHERE_ID = '''
-  AND g.ensembl_id IN (SELECT distinct ensembl_id FROM {})
-'''
-
-SQL_ORDER_BY_ID = ' ORDER BY e.ensembl_id'
+SQL_ORDER_BY_ID = ' ORDER BY g.ensembl_id'
 
 SQL_ORDER_BY_POSITION = '''
  ORDER BY cast(
@@ -59,7 +65,7 @@ SQL_ORDER_BY_POSITION = '''
 '''
 
 
-def get(version, species, ids=None, order='id', full=False):
+def get(ids, species=None, version=None, order='id', full=False):
     """Get genes matching the ids.
 
         Each match object will contain:
@@ -113,7 +119,7 @@ def get(version, species, ids=None, order='id', full=False):
     results = {}
 
     try:
-        conn = fetch_utils.connect_to_database(version, species)
+        conn = fetch_utils.connect_to_database(species, version)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -126,21 +132,19 @@ def get(version, species, ids=None, order='id', full=False):
             # genes, transcripts, proteins, exons
             SQL_QUERY = SQL_ID_FULL
 
-        if ids:
-            # create a temp table and insert into
-            SQL_TEMP = ('CREATE TEMPORARY TABLE {} ( '
-                        'ensembl_id TEXT, '
-                        'PRIMARY KEY (ensembl_id) '
-                        ');').format(temp_table)
+        # create a temp table and insert into
+        SQL_TEMP = ('CREATE TEMPORARY TABLE {} ( '
+                    'ensembl_id TEXT, '
+                    'PRIMARY KEY (ensembl_id) '
+                    ');').format(temp_table)
 
-            cursor.execute(SQL_TEMP)
+        cursor.execute(SQL_TEMP)
 
-            SQL_TEMP = 'INSERT INTO {} VALUES (?);'.format(temp_table)
-            ids = [(_,) for _ in ids]
-            cursor.executemany(SQL_TEMP, ids)
+        SQL_TEMP = 'INSERT INTO {} VALUES (?);'.format(temp_table)
+        ids = [(_,) for _ in ids]
+        cursor.executemany(SQL_TEMP, ids)
 
-            SQL_QUERY = '{} {}'.format(SQL_QUERY,
-                                       SQL_WHERE_ID.format(temp_table))
+        SQL_QUERY = SQL_QUERY.format(temp_table)
 
         if order and order.lower() == 'position':
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
@@ -148,6 +152,10 @@ def get(version, species, ids=None, order='id', full=False):
         else:
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
                                        SQL_ORDER_BY_ID)
+
+
+        print(SQL_QUERY)
+
 
         for row in cursor.execute(SQL_QUERY, variables):
             gene_id = row['gene_id']
@@ -247,6 +255,7 @@ def get(version, species, ids=None, order='id', full=False):
             # convert transcripts, etc to sorted list rather than dict
             ret = {}
             for (gene_id, gene) in results.items():
+                print(gene_id, gene)
                 if gene:
                     t = []
                     for (transcript_id, transcript) in gene['transcripts'].items():

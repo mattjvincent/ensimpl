@@ -232,7 +232,7 @@ def get_query(term, exact=True):
     return query
 
 
-def execute_query(query, version, species, limit=None):
+def execute_query(query, version=None, species=None, limit=None):
     """Execute the SQL query.
 
     Args:
@@ -254,7 +254,7 @@ def execute_query(query, version, species, limit=None):
     ilimit = fetch_utils.nvli(limit, -1)
 
     try:
-        conn = fetch_utils.connect_to_database(version, species)
+        conn = fetch_utils.connect_to_database(species, version)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -322,7 +322,7 @@ def execute_query(query, version, species, limit=None):
     return Result(query, matches, num_matches)
 
 
-def search(term, version, species, exact=True, limit=None):
+def search(term, version=None, species=None, exact=True, limit=None):
     """Perform the search.
 
     Args:

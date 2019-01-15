@@ -9,8 +9,6 @@ import ensimpl.db_config as db_config
 
 #from ensimpl.extensions import debug_toolbar
 from ensimpl.modules.api.views import api
-from ensimpl.modules.lookup.views import lookup
-from ensimpl.modules.navigator.views import navigator
 from ensimpl.modules.page.views import page
 from ensimpl.utils import ReverseProxied
 
@@ -44,8 +42,6 @@ def create_app(settings_override=None):
     middleware(app)
 
     app.register_blueprint(api)
-    app.register_blueprint(lookup)
-    app.register_blueprint(navigator)
     app.register_blueprint(page)
 
     extensions(app)
