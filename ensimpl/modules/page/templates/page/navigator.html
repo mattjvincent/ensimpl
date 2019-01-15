@@ -168,14 +168,11 @@
 {% endblock %}
 
 {% block javascript %}
-<script
-    src="//d3js.org/d3.v3.min.js"
-    crossorigin="anonymous"></script>
 
+<script src="{{ url_for('static', filename='js/d3.v3.js', _external=True) }}"></script>
 <script src="{{ url_for('static', filename='js/Blob.js', _external=True) }}"></script>
 <script src="{{ url_for('static', filename='js/FileSaver.js', _external=True) }}"></script>
-
-    <script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
+<script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
 <script src="{{ url_for('page.karyotype_js', _external=True) }}"></script>
 
 <script>
