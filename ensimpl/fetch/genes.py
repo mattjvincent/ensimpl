@@ -153,10 +153,6 @@ def get(ids, species=None, version=None, order='id', full=False):
             SQL_QUERY = '{} {}'.format(SQL_QUERY,
                                        SQL_ORDER_BY_ID)
 
-
-        print(SQL_QUERY)
-
-
         for row in cursor.execute(SQL_QUERY, variables):
             gene_id = row['gene_id']
             ensembl_id = row['ensembl_id']
