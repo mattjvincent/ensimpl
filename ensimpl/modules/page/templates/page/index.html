@@ -5,7 +5,7 @@
 {% block head %}
 <!-- Bootstrap CSS -->
 <link rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
+      href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
       integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
       crossorigin="anonymous">
 {% endblock %}
@@ -95,6 +95,7 @@
      * Perform Ensimpl search.
      */
     function findGene() {
+        let searchVal = $("#searchTerm").val().trim().toUpperCase();
         let searchVal = $("#searchTerm").val().trim().toUpperCase();
         let version = $("#selectVersion").val();
         let species = $("#selectSpecies").val();

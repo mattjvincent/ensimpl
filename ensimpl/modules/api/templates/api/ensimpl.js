@@ -11,6 +11,8 @@
     
             // Define option defaults
             this.defaults = {
+                // {{url_for('api.versions')}}
+                // {{url_for('api.versions', _scheme='https')}}
                 versions_url: "{{url_for('api.versions', _external=True)}}",
                 search_exact: false,
                 search_limit: 1000,
