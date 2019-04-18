@@ -209,9 +209,9 @@
 {% endblock %}
 
 {% block javascript %}
-<script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
-<script src="{{ url_for('static', filename='js/Blob.js', _external=True) }}"></script>
-<script src="{{ url_for('static', filename='js/FileSaver.js', _external=True) }}"></script>
+<script src="{{ url_for('api.ensimpl_js') }}"></script>
+<script src="{{ url_for('static', filename='js/Blob.js') }}"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.js') }}"></script>
 
 
 <script>
@@ -264,7 +264,7 @@
         window.IDS = {};
 
         $.ajax({
-              url: '{{ url_for('api.genes', _external=True) }}',
+              url: '{{ url_for('api.genes') }}',
               type: "POST",
               data: data
           }).done(function (data, textStatus, jqXHR) {

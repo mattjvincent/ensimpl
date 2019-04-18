@@ -90,9 +90,9 @@
 {% endblock %}
 
 {% block javascript %}
-<script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
-<script src="{{ url_for('static', filename='js/Blob.js', _external=True) }}"></script>
-<script src="{{ url_for('static', filename='js/FileSaver.js', _external=True) }}"></script>
+<script src="{{ url_for('api.ensimpl_js', _external=False) }}"></script>
+<script src="{{ url_for('static', filename='js/Blob.js', _external=False) }}"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.js', _external=False) }}"></script>
 
 
 <script>
@@ -131,7 +131,7 @@
         window.HISTORY = {};
 
         $.ajax({
-              url: '{{ url_for('api.history', _external=True) }}',
+              url: '{{ url_for('api.history', _external=False) }}',
               type: "GET",
               data: data
           }).done(function (data, textStatus, jqXHR) {

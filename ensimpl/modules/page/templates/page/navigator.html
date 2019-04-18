@@ -169,11 +169,11 @@
 
 {% block javascript %}
 
-<script src="{{ url_for('static', filename='js/d3.v3.js', _external=True) }}"></script>
-<script src="{{ url_for('static', filename='js/Blob.js', _external=True) }}"></script>
-<script src="{{ url_for('static', filename='js/FileSaver.js', _external=True) }}"></script>
-<script src="{{ url_for('api.ensimpl_js', _external=True) }}"></script>
-<script src="{{ url_for('page.karyotype_js', _external=True) }}"></script>
+<script src="{{ url_for('static', filename='js/d3.v3.js', _external=False) }}"></script>
+<script src="{{ url_for('static', filename='js/Blob.js', _external=False) }}"></script>
+<script src="{{ url_for('static', filename='js/FileSaver.js', _external=False) }}"></script>
+<script src="{{ url_for('api.ensimpl_js', _external=False) }}"></script>
+<script src="{{ url_for('page.karyotype_js', _external=False) }}"></script>
 
 <script>
 
@@ -559,7 +559,7 @@
                                               'showPositionOnHover': false,
                                               'onSelection':onSelected,
                                               //'onSelecting':onSelecting,
-                                              'url':"{{ url_for('api.karyotypes', _external=True) }}?species=" + selectedSpecies + "&version=" + selectedVersion
+                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + selectedSpecies + "&version=" + selectedVersion
             });
         });
 
@@ -592,7 +592,7 @@
                                               'showPositionOnHover': false,
                                               'onSelection':onSelected,
                                               //'onSelecting':onSelecting,
-                                              'url':"{{ url_for('api.karyotypes', _external=True) }}?species=" + species + "&version=" + version})
+                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + species + "&version=" + version})
 
         });
 
@@ -611,7 +611,7 @@
                                               'showPositionOnHover': false,
                                               'onSelection':onSelected,
                                               //'onSelecting':onSelecting,
-                                              'url':"{{ url_for('api.karyotypes', _external=True) }}?species=" + species + "&version=" + version})
+                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + species + "&version=" + version})
 
         });
 

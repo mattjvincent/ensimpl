@@ -6,7 +6,11 @@ USERNAME=mattjvincent
 # image name
 IMAGE=ensimpl
 
-docker build -t $USERNAME/$IMAGE:latest .
+version=`cat VERSION`
+echo "version: $version"
+
+docker build -t $USERNAME/$IMAGE:$version .
+
 
 
 
