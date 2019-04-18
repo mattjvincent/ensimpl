@@ -10,5 +10,6 @@ services:
     volumes:
       - '.:/app/ensimpl'
       - ${ENSIMPL_DATA}:/app/ensimpl/data
+      - ${ENSIMPL_SETTINGS_LOCAL}:${ENSIMPL_SETTINGS}
     ports:
       - '${EXTERNAL_PORT}:8000'

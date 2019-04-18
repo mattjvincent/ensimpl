@@ -3,6 +3,11 @@
 {% block title %}ensimpl{% endblock %}
 
 {% block head %}
+<!-- Bootstrap CSS -->
+<link rel="stylesheet"
+      href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css"
+      integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
+      crossorigin="anonymous">
 {% endblock %}
 
 {% block body %}
@@ -22,5 +27,97 @@
 
 {% block javascript %}
 
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"
+        integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
+        crossorigin="anonymous"></script>
+
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"
+        integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ"
+        crossorigin="anonymous"></script>
+
+<script src="{{ url_for('api.ensimpl_js') }}"></script>
+
+<script>
+    <!--
+    /**
+     * Perform Ensimpl search.
+     */
+    function findGene() {
+        let searchVal = $("#searchTerm").val().trim().toUpperCase();
+        let version = $("#selectVersion").val();
+        let species = $("#selectSpecies").val();
+
+        $("#tblBody").html('');
+
+        if (searchVal.length === 0) {
+            return;
+        }
+
+        let options = {species: species,
+                       limit: 100};
+
+        if (version !== "") {
+            options['version'] = version;
+        }
+        //window.ENSIMPL.reconfigure(settings);
+
+        window.ENSIMPL.search(searchVal, options, function (data) {
+            console.log('data=', data);
+            $.each(data.result.matches, function(idx, elem) {
+                $("#tblBody").append('<tr>' +
+                                     '<td>' + elem.ensembl_gene_id + '</td>' +
+                                     '<td>' + elem.symbol + '</td>' +
+                                     '<td class="d-none d-md-table-cell">' + elem.chromosome + ':' + elem.position_start + '-' + elem.position_end + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.match_reason + '</td>' +
+                                     '<td class="d-none d-xl-table-cell">' + elem.name + '</td>' +
+                                     '</tr>');
+            });
+        });
+    }
+
+    $().ready(function () {
+
+        window.ENSIMPL = new ensimpl();
+
+        window.ENSIMPL.versions(function(data) {
+            let versions = {};
+            let species = {};
+
+           $.each(data, function(idx, elem) {
+               versions[elem['version']] = +elem['version'];
+               species[elem['species']] = elem['species'];
+           });
+
+           let vals = Object.values(versions);
+           vals.sort().reverse();
+
+           $.each(vals, function(key, val) {
+               $("#selectVersion").append('<option value="' + val + '">' + val + '</option>')
+           });
+
+           $.each(species, function(key, val) {
+               $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+           });
+
+        });
+
+        $('#searchTerm').keypress(function (evt) {
+            let code = evt.which ? evt.which : evt.keyCode;
+            if (code === 13) {
+                $(this).blur();
+                $('#btnGo').focus().click();
+            }
+        });
+
+        $('#btnGo').button().on('click', function (evt) {
+            evt.preventDefault();
+            findGene();
+            console.log('findGene');
+            return false;
+        });
+    });
+    //-->
+</script>
 
 {% endblock %}
