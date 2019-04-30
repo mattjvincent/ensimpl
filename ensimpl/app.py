@@ -13,8 +13,6 @@ from ensimpl.modules.page.views import page
 from ensimpl.utils import ReverseProxied
 
 
-
-
 def create_app(settings_override=None):
     """Create a Flask application using the app factory pattern.
 
@@ -26,6 +24,8 @@ def create_app(settings_override=None):
         flask.Flask: The Flask application object.
     """
     app = Flask(__name__)
+
+    print('creating app')
 
     app.config.from_object('config.settings')
 

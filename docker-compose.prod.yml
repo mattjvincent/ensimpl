@@ -3,4 +3,10 @@ version: '3'
 services:
   website:
     image: mattjvincent/ensimpl:${ENSIMPL_DOCKER_VERSION}
-
+    env_file:
+      - '.env'
+    volumes:
+      - ${ENSIMPL_DATA}:/app/ensimpl/data
+      - ${ENSIMPL_SETTINGS_LOCAL}:${ENSIMPL_SETTINGS}
+    ports:
+      - '${EXTERNAL_PORT}:8000'

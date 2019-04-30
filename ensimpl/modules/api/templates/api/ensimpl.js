@@ -11,11 +11,11 @@
     
             // Define option defaults
             this.defaults = {
-                versions_url: "{{url_for('api.versions', _external=False)}}",
+                versions_url: "{{url_for('api.versions', _external=True)}}",
                 search_exact: false,
                 search_limit: 1000,
                 search_species: null,
-                search_url: "{{url_for('api.search', _external=False)}}",
+                search_url: "{{url_for('api.search', _external=True)}}",
                 search_version: null
             };
     
