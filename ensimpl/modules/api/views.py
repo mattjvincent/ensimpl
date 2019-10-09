@@ -245,8 +245,8 @@ def karyotypes():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    species = request.values.get('species', None)
-    version = request.values.get('version', None)
+    species = fetch_utils.nvl(request.values.get('species', None), None)
+    version = fetch_utils.nvl(request.values.get('version', None), None)
 
     ret = {'version': None, 'chromosomes': {}}
 
@@ -328,9 +328,9 @@ def gene():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    species = request.values.get('species', None)
-    version = request.values.get('version', None)
-    id = request.values.get('id', None)
+    species = fetch_utils.nvl(request.values.get('species', None), None)
+    version = fetch_utils.nvl(request.values.get('version', None), None)
+    id = fetch_utils.nvl(request.values.get('id', None), None)
     full = ensimpl_utils.str2bool(request.values.get('full', 0))
 
     ret = {'gene': None}
@@ -540,11 +540,11 @@ def search():
     """
     current_app.logger.debug('Call for: GET {}'.format(request.url))
 
-    version = request.values.get('version', None)
-    species = request.values.get('species', None)
-    term = request.values.get('term', None)
+    version = fetch_utils.nvl(request.values.get('version', None), None)
+    species = fetch_utils.nvl(request.values.get('species', None), None)
+    term = fetch_utils.nvl(request.values.get('term', None), None)
     exact = ensimpl_utils.str2bool(request.values.get('exact', 'F'))
-    limit = request.values.get('limit', '100000')
+    limit = fetch_utils.nvl(request.values.get('limit', '100000'), '100000')
 
     try:
         limit = int(limit)
@@ -612,8 +612,8 @@ def history():
     """
     current_app.logger.debug('Call for: {}'.format(request.url))
 
-    ensembl_id = request.values.get('id', None)
-    species = request.values.get('species', None)
+    ensembl_id = fetch_utils.nvl(request.values.get('id', None), None)
+    species = fetch_utils.nvl(request.values.get('species', None), None)
 
     version_start = fetch_utils.nvli(request.values.get('version_start', None), None)
     version_end = fetch_utils.nvli(request.values.get('version_end', None), None)

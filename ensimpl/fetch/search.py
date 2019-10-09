@@ -13,8 +13,8 @@ REGEX_MGI_ID = re.compile("MGI:[0-9]{1,}", re.IGNORECASE)
 REGEX_REGION = re.compile("(CHR|)*\s*([0-9]{1,2}|X|Y|MT)\s*(-|:)?\s*(\d+)\s*(MB|M|K|)?\s*(-|:|)?\s*(\d+|)\s*(MB|M|K|)?", re.IGNORECASE)
 
 SQL_TERM_EXACT = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
+SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) AS match_description, 
+       s.score, l.ensembl_gene_id, g.*
   FROM ensembl_genes g,
        ensembl_genes_lookup l,
        search_ranking s
@@ -26,8 +26,8 @@ ORDER BY match_description - length(match_description) DESC, g.symbol ASC
 '''
 
 SQL_TERM_LIKE = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
+SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) AS match_description, 
+       s.score, l.ensembl_gene_id, g.*
   FROM ensembl_genes g,
        ensembl_genes_lookup l,
        ensembl_search es,
@@ -41,8 +41,8 @@ ORDER BY match_description - length(match_description) DESC, g.symbol ASC
 '''
 
 SQL_ID = '''
-SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) 
-       AS match_description, l.ensembl_gene_id, g.*
+SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) AS match_description, 
+       s.score, l.ensembl_gene_id, g.*
   FROM ensembl_genes g,
        ensembl_genes_lookup l,
        ensembl_search es,
@@ -122,7 +122,7 @@ class Match:
                  external_ids=None, symbol=None, name=None, synonyms=None,
                  species=None, chromosome=None, position_start=None,
                  position_end=None, strand=None, match_reason=None,
-                 match_value=None):
+                 match_value=None, score=None):
         """Constructor.
 
         Args:
@@ -139,6 +139,7 @@ class Match:
             strand (str, optional): ``+`` or ``-``
             match_reason (str, optional): The key the term matched on.
             match_value (str, optional): The value the term matched on.
+            score (int, optional): Match score
         """
         #: str: Ensembl gene identifier
         self.ensembl_gene_id = ensembl_gene_id
@@ -156,6 +157,7 @@ class Match:
         self.strand = strand
         self.match_reason = match_reason
         self.match_value = match_value
+        self.score = score
 
     def __str__(self):
         return str(self.ensembl_gene_id)
@@ -302,6 +304,7 @@ def execute_query(query, version=None, species=None, limit=None):
                     desc = row_match_description.split('||')
                 match.match_reason = desc[1]
                 match.match_value = desc[2]
+                match.score = row['score'] - len(row_match_description)
 
             matches.append(match)
 
@@ -331,6 +334,7 @@ def search(term, version=None, species=None, exact=True, limit=None):
         species (str): The Ensembl species identifier.
         exact (bool, optional): ``True`` for exact match of `term`.
         limit (int, optional): Maximum number to return, ``None`` for all.
+        current (bool, optional): Also get current information
 
     Returns:
         :obj:`Result`: The result of the query.
@@ -351,6 +355,38 @@ def search(term, version=None, species=None, exact=True, limit=None):
         LOG.debug('# matches: {}'.format(len(result.matches)))
 
         return result
+    except SearchException as se:
+        LOG.error('Error: {}'.format(se))
+        return None
+
+
+def search_detail(term, version=None, species=None, exact=True, limit=None):
+    """Perform the search.
+
+    Args:
+        term (str): The search term.
+        version (int): The Ensembl version.
+        species (str): The Ensembl species identifier.
+        exact (bool, optional): ``True`` for exact match of `term`.
+        limit (int, optional): Maximum number to return, ``None`` for all.
+
+    Returns:
+        :obj:`Result`: The result of the query.
+    """
+    LOG.debug('term={}'.format(term))
+    LOG.debug('version={}'.format(version))
+    LOG.debug('species={}'.format(species))
+    LOG.debug('exact={}'.format(exact))
+    LOG.debug('limit={}'.format(limit))
+
+    try:
+        results_requested = search(term, version, species, exact, limit)
+        results_current = search(term, None, species, exact, limit)
+
+        # merge the results
+
+
+
     except SearchException as se:
         LOG.error('Error: {}'.format(se))
         return None

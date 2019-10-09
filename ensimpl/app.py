@@ -25,8 +25,6 @@ def create_app(settings_override=None):
     """
     app = Flask(__name__)
 
-    print('creating app')
-
     app.config.from_object('config.settings')
 
     if app.config.from_envvar('ENSIMPL_SETTINGS', silent=True):

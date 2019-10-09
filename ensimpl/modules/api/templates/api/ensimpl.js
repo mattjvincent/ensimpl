@@ -19,7 +19,7 @@
                 search_version: null
             };
     
-            var $ = window.$ || window.JQuery;
+            let $ = window.$ || window.JQuery;
     
             // Create options by extending defaults with the passed in arguments
             if (arguments[0] && typeof arguments[0] === "object") {
@@ -37,7 +37,7 @@
       ensimpl.prototype.reconfigure = function(settings) {
           console.log('reconfiguring');
           console.log('this.defaults=', this.defaults);
-          var $ = window.$ || window.JQuery;
+          let $ = window.$ || window.JQuery;
           this.settings = $.extend({}, this.defaults, settings);
       };
     
@@ -48,7 +48,7 @@
     
           $.ajax({
               url: _.settings.versions_url,
-              dataType: "jsonp",
+              dataType: 'jsonp',
               jsonp: 'callback',
               data: {'expand': 1}
           }).done(function (data, textStatus, jqXHR) {
@@ -66,11 +66,11 @@
       };
     
       ensimpl.prototype.search = function(term, options, callback) {
-          var _ = this;
-          var $ = window.$ || window.JQuery;
+          let _ = this;
+          let $ = window.$ || window.JQuery;
           _.response = null;
     
-          var search_data = {
+          let search_data = {
               term: term,
               species: _.settings.search_species,
               limit: _.settings.search_limit,
@@ -84,7 +84,7 @@
     
           $.ajax({
               url: _.settings.search_url,
-              dataType: "jsonp",
+              dataType: 'jsonp',
               jsonp: 'callback',
               data: search_data
           }).done(function (data, textStatus, jqXHR) {
@@ -106,7 +106,7 @@
     
       function initialize() {
             //console.log('check_jquery');
-            var jquery = window.$ || window.JQuery;
+            let jquery = window.$ || window.JQuery;
             if (jquery === undefined || jquery.fn.jquery !== '2.0.3') {
                 //loadfile(this.options.jquery_url, 'js');//, main);
                 //console.log('jquery: loaded');
@@ -117,14 +117,14 @@
       }
     
       function loadfile(filesrc, filetype, onload) {
-        if (filetype == "js") { //if filename is a external JavaScript file
-            var fileref = document.createElement('script');
+        if (filetype === "js") { //if filename is a external JavaScript file
+            let fileref = document.createElement('script');
             fileref.setAttribute("type", "text/javascript");
             fileref.setAttribute("src", filesrc);
             fileref.setAttribute("async", true)
         }
-        else if (filetype == "css") { //if filename is an external CSS file
-            var fileref = document.createElement("link");
+        else if (filetype === "css") { //if filename is an external CSS file
+            let fileref = document.createElement("link");
             fileref.setAttribute("rel", "stylesheet");
             fileref.setAttribute("type", "text/css");
             fileref.setAttribute("href", filesrc);
@@ -133,7 +133,7 @@
         if (typeof fileref != "undefined")
             if (fileref.readyState) {
                 fileref.onreadystatechange = function () { // For old versions of IE
-                    if (this.readyState == 'complete' || this.readyState == 'loaded') {
+                    if (this.readyState === 'complete' || this.readyState === 'loaded') {
                         onload();
                     }
                 };
@@ -147,7 +147,7 @@
     
     //ref:http://www.tomhoppe.com/index.php/2008/03/dynamically-adding-css-through-javascript/
     function add_css(cssCode) {
-        var styleElement = document.createElement("style");
+        let styleElement = document.createElement("style");
         styleElement.type = "text/css";
         if (styleElement.styleSheet) {
             styleElement.styleSheet.cssText = cssCode;
