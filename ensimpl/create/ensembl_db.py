@@ -208,7 +208,8 @@ SELECT *
 '''
 
 SQL_ENSEMBL_SELECT_CHROMOSOME = '''
-SELECT DISTINCT sr.name, sr.length, k.seq_region_start, k.seq_region_end, k.band, k.stain
+SELECT DISTINCT sr.name, sr.length, k.seq_region_start, k.seq_region_end, 
+       k.band, k.stain
   FROM coord_system cs,
        seq_region sr
   LEFT JOIN karyotype k ON k.seq_region_id = sr.seq_region_id
@@ -217,9 +218,193 @@ SELECT DISTINCT sr.name, sr.length, k.seq_region_start, k.seq_region_end, k.band
                    '11',  '12', '13', '14', '15', '16', '17', '18', '19', '20',
                    '21', '22', 'X', 'Y', 'MT')
    AND cs.rank = 1
- ORDER BY cast(replace(replace(replace(sr.name, 'X', '50'), 'Y', '51'), 'MT', '52') as signed), k.seq_region_start
+ ORDER BY cast(replace(replace(replace(sr.name, 'X', '50'), 'Y', '51'), 
+          'MT', '52') as signed), k.seq_region_start
 '''
 
+SQL_ENSEMBL_COMPARA_75_SELECT_HOMOLOGS = '''
+SELECT h.homology_id, 
+       h.description,
+       h.dn,
+       h.ds,
+       null goc_score,
+       null wga_coverage,
+       null is_high_confidence,
+       gm_hs.stable_id hs_id,
+       gm_hs.version hs_version,
+       gm_hs.display_label hs_symbol, 
+       gm_mm.stable_id mm_id,
+       gm_mm.version mm_version,
+       gm_mm.display_label mm_symbol, 
+       hm_hs.perc_cov hs_perc_cov,
+       hm_hs.perc_id hs_perc_id,
+       hm_hs.perc_pos hs_perc_pos,            
+       hm_mm.perc_cov mm_perc_cov,
+       hm_mm.perc_id mm_perc_id,
+       hm_mm.perc_pos mm_perc_pos            
+  FROM homology h,
+       homology_member hm_mm,
+       member gm_mm,
+       homology_member hm_hs,
+       member gm_hs
+ WHERE h.homology_id = hm_mm.homology_id
+   AND hm_mm.member_id = gm_mm.member_id
+   AND gm_mm.taxon_id = 10090
+   AND h.homology_id = hm_hs.homology_id
+   AND hm_hs.member_id  = gm_hs.member_id
+   AND gm_hs.taxon_id = 9606
+   AND h.method_link_species_set_id = (
+       SELECT DISTINCT ml.method_link_species_set_id
+         FROM species_set s,
+              method_link_species_set ml,
+              method_link m,
+              (  
+               SELECT s.species_set_id 
+                 FROM species_set s,
+                      genome_db g
+                WHERE s.genome_db_id = g.genome_db_id
+                  AND g.taxon_id = 9606
+              ) homosapiens,
+              (
+               SELECT s.species_set_id 
+                 FROM species_set s,
+                      genome_db g
+                WHERE s.genome_db_id = g.genome_db_id
+                  AND g.taxon_id = 10090
+              ) musmusculus
+        WHERE homosapiens.species_set_id = musmusculus.species_set_id
+          AND musmusculus.species_set_id = s.species_set_id
+          AND s.species_set_id =  ml.species_set_id
+          AND ml.method_link_id = m.method_link_id
+          AND ml.source != 'NULL'
+          AND m.type = 'ENSEMBL_ORTHOLOGUES')                  
+'''
+
+
+SQL_ENSEMBL_COMPARA_76_85_SELECT_HOMOLOGS = '''
+SELECT h.homology_id, 
+       h.description,
+       h.dn,
+       h.ds,
+       null goc_score,
+       null wga_coverage,
+       null is_high_confidence,
+       gm_hs.stable_id hs_id,
+       gm_hs.version hs_version,
+       gm_hs.display_label hs_symbol, 
+       gm_mm.stable_id mm_id,
+       gm_mm.version mm_version,
+       gm_mm.display_label mm_symbol, 
+       hm_hs.perc_cov hs_perc_cov,
+       hm_hs.perc_id hs_perc_id,
+       hm_hs.perc_pos hs_perc_pos,            
+       hm_mm.perc_cov mm_perc_cov,
+       hm_mm.perc_id mm_perc_id,
+       hm_mm.perc_pos mm_perc_pos            
+  FROM homology h,
+       homology_member hm_mm,
+       gene_member gm_mm,
+       homology_member hm_hs,
+       gene_member gm_hs
+ WHERE h.homology_id = hm_mm.homology_id
+   AND hm_mm.gene_member_id = gm_mm.gene_member_id
+   AND gm_mm.taxon_id = 10090
+   AND h.homology_id = hm_hs.homology_id
+   AND hm_hs.gene_member_id  = gm_hs.gene_member_id
+   AND gm_hs.taxon_id = 9606
+   AND h.method_link_species_set_id = (
+       SELECT DISTINCT ml.method_link_species_set_id
+         FROM species_set s,
+              method_link_species_set ml,
+              method_link m,
+              (  
+               SELECT s.species_set_id 
+                 FROM species_set s,
+                      genome_db g
+                WHERE s.genome_db_id = g.genome_db_id
+                  AND g.taxon_id = 9606
+              ) homosapiens,
+              (
+               SELECT s.species_set_id 
+                 FROM species_set s,
+                      genome_db g
+                WHERE s.genome_db_id = g.genome_db_id
+                  AND g.taxon_id = 10090
+              ) musmusculus
+        WHERE homosapiens.species_set_id = musmusculus.species_set_id
+          AND musmusculus.species_set_id = s.species_set_id
+          AND s.species_set_id =  ml.species_set_id
+          AND ml.method_link_id = m.method_link_id
+          AND ml.source != 'NULL'
+          AND m.type = 'ENSEMBL_ORTHOLOGUES')     
+'''
+
+
+SQL_ENSEMBL_COMPARA_86_SELECT_HOMOLOGS = '''
+SELECT h.homology_id, 
+       h.description,
+       h.dn,
+       h.ds,
+       h.goc_score,
+       h.wga_coverage,
+       h.is_high_confidence,
+       gm_hs.stable_id hs_id,
+       gm_hs.version hs_version,
+       gm_hs.display_label hs_symbol, 
+       gm_mm.stable_id mm_id,
+       gm_mm.version mm_version,
+       gm_mm.display_label mm_symbol, 
+       hm_hs.perc_cov hs_perc_cov,
+       hm_hs.perc_id hs_perc_id,
+       hm_hs.perc_pos hs_perc_pos,            
+       hm_mm.perc_cov mm_perc_cov,
+       hm_mm.perc_id mm_perc_id,
+       hm_mm.perc_pos mm_perc_pos            
+  FROM homology h,
+       homology_member hm_mm,
+       gene_member gm_mm,
+       homology_member hm_hs,
+       gene_member gm_hs
+ WHERE h.homology_id = hm_mm.homology_id
+   AND hm_mm.gene_member_id = gm_mm.gene_member_id
+   AND gm_mm.taxon_id = 10090
+   AND h.homology_id = hm_hs.homology_id
+   AND hm_hs.gene_member_id  = gm_hs.gene_member_id
+   AND gm_hs.taxon_id = 9606
+   AND h.method_link_species_set_id = (
+       SELECT DISTINCT ml.method_link_species_set_id
+         FROM species_set s,
+              method_link_species_set ml,
+              method_link m,
+              (  
+               SELECT s.species_set_id 
+                 FROM species_set s,
+                      genome_db g
+                WHERE s.genome_db_id = g.genome_db_id
+                  AND g.taxon_id = 9606
+              ) homosapiens,
+              (
+               SELECT s.species_set_id 
+                 FROM species_set s,
+                      genome_db g
+                WHERE s.genome_db_id = g.genome_db_id
+                  AND g.taxon_id = 10090
+              ) musmusculus
+        WHERE homosapiens.species_set_id = musmusculus.species_set_id
+          AND musmusculus.species_set_id = s.species_set_id
+          AND s.species_set_id =  ml.species_set_id
+          AND ml.method_link_id = m.method_link_id
+          AND ml.source != 'NULL'
+          AND m.type = 'ENSEMBL_ORTHOLOGUES')     
+'''
+
+SQL_ENSEMBL_COMPARA_SELECT_HOMOLOGS_MM_ORDER_BY = '''
+   ORDER BY mm_id, hs_id
+'''
+
+SQL_ENSEMBL_COMPARA_SELECT_HOMOLOGS_HS_ORDER_BY = '''
+   ORDER BY hs_id, mm_id
+'''
 
 def _get_sql_select_gene(version):
     """Retrieve the proper SQL statement based upon the Ensembl `version`.
@@ -251,23 +436,45 @@ def _get_sql_select_gtpe(version):
         return SQL_ENSEMBL_65_SELECT_GTPE + SQL_ENSEMBL_65_SELECT_GTPE_ORDER_BY
 
 
-def connect_to_database(ref):
+def _get_sql_select_gene_homologs(version):
+    """Retrieve the proper SQL statement based upon the Ensembl `version`.
+
+    Args:
+        version (int): Ensembl version.
+
+    Returns:
+        str: The SQL statement.
+    """
+    if int(version) <= 75:
+        return SQL_ENSEMBL_COMPARA_75_SELECT_HOMOLOGS
+    elif int(version) <= 85:
+        return SQL_ENSEMBL_COMPARA_76_85_SELECT_HOMOLOGS
+    else:
+        return SQL_ENSEMBL_COMPARA_86_SELECT_HOMOLOGS
+
+
+def connect_to_database(ref, db=None):
     """Connect to Ensembl database.
 
     Args:
         ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
             Contains information about the Ensembl reference.
+        db:
 
     Returns:
         :class:`pymysql.connections.Connection`: A connection to the database.
     """
     try:
         LOG.debug('Connecting to {} ...'.format(ref.server))
+
+        if not db:
+            db = ref.db
+
         connection = pymysql.connect(host=ref.server,
                                      port=int(ref.port),
                                      user=ref.user_id,
                                      password=ref.password,
-                                     db=ref.db,
+                                     db=db,
                                      cursorclass=pymysql.cursors.DictCursor)
 
         LOG.debug('Connected')
@@ -304,14 +511,14 @@ def extract_chromosomes_karyotypes(ref):
         LOG.debug('Extracting chromosomes and karyotypes...')
         with conn.cursor() as cursor:
             num_rows = cursor.execute(SQL_ENSEMBL_SELECT_CHROMOSOME)
-            LOG.debug('{:,} records returned'.format(num_rows))
+            LOG.debug(f'{num_rows:,} records returned')
 
             for row in cursor:
                 chromosomes.append(row)
 
-            LOG.debug('{:,} chromosomes extracted'.format(num_rows))
+            LOG.debug(f'{num_rows:,} records extracted')
     except pymysql.Error as e:
-        LOG.error('Unable to extract chromosomes and karyotpes from ensembl: {}').format(e)
+        LOG.error(f'Unable to extract chromosomes from Ensembl: {e}')
         return None
 
     return chromosomes
@@ -337,7 +544,7 @@ def extract_synonyms(ref):
         with conn.cursor() as cursor:
             count = 0
             num_rows = cursor.execute(SQL_ENSEMBL_SELECT_SYNONYMS)
-            LOG.debug('{:,} records returned'.format(num_rows))
+            LOG.debug(f'{num_rows:,} records returned')
 
             for row in cursor:
                 xref = synonyms.get(row['xref_id'], None)
@@ -350,12 +557,12 @@ def extract_synonyms(ref):
                 synonyms[row['xref_id']] = xref
 
                 if count and count % 10000 == 0:
-                    LOG.debug('{:,} synonyms extracted'.format(count))
+                    LOG.debug(f'{count:,} synonyms extracted')
                 count += 1
 
-            LOG.debug('{:,} synonyms extracted'.format(count))
+            LOG.debug(f'{count:,} synonyms extracted')
     except pymysql.Error as e:
-        LOG.error('Unable to extract synonyms from ensembl: {}').format(e)
+        LOG.error(f'Unable to extract synonyms from Ensembl: {e}')
         return None
 
     return synonyms
@@ -397,9 +604,8 @@ def extract_ensembl_genes(ref):
 
         LOG.debug('Extracting genes...')
         with conn.cursor() as cursor:
-            count = 0
             num_rows = cursor.execute(sql)
-            LOG.debug('{:,} records returned'.format(num_rows))
+            LOG.debug(f'{num_rows:,} records returned')
 
             for row in cursor:
                 gene = genes.get(row['ensembl_id'], None)
@@ -415,13 +621,12 @@ def extract_ensembl_genes(ref):
 
                 genes[row['ensembl_id']] = gene
 
-                if count and count % 10000 == 0:
-                    LOG.debug('{:,} genes extracted'.format(len(genes)))
-                count += 1
+                if len(genes) and len(genes) % 10000 == 0:
+                    LOG.debug(f'{len(genes):,} genes extracted')
 
-            LOG.debug('{:,} genes extracted'.format(len(genes)))
+            LOG.debug(f'{len(genes):,} genes extracted')
     except pymysql.Error as e:
-        LOG.error('Unable to extract genes from ensembl: {}').format(e)
+        LOG.error(f'Unable to extract genes from Ensembl: {e}')
         return None
 
     return genes
@@ -450,23 +655,71 @@ def extract_ensembl_gtpe(ref):
         with conn.cursor() as cursor:
             count = 0
             num_rows = cursor.execute(sql)
-            LOG.debug('{:,} records returned'.format(num_rows))
+            LOG.debug(f'{num_rows:,} records returned')
 
             for row in cursor:
                 gtep.append(row)
                 genes[row['gene_id']] = 1
 
-                if count and count % 100000 == 0:
-                    LOG.debug('{:,} genes extracted'.format(len(genes)))
+                if len(gtep) and len(gtep) % 100000 == 0:
+                    LOG.debug(f'{len(gtep):,} records extracted')
                 count += 1
 
-            LOG.debug('{:,} genes extracted'.format(len(genes)))
+            LOG.debug(f'{len(gtep):,} records extracted')
     except pymysql.Error as e:
-        LOG.error('Unable to extract genes from ensembl: {}').format(e)
+        LOG.error('Unable to extract transcript, protein, exon from '
+                  f'Ensembl: {e}')
         return None
 
     return gtep
 
+
+def extract_ensembl_homologs(ref):
+    """Extract the homologs from Ensembl.
+
+    Args:
+        ref (:class:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
+
+    Returns:
+        dict: A ``dict`` of genes and there homologs.
+    """
+    homologs = {}
+
+    try:
+        conn = connect_to_database(ref, ref.compara_db)
+        sql = _get_sql_select_gene_homologs(ref.version)
+
+        if ref.species_id.lower() == 'hs':
+            e_id = 'hs_id'
+            sql += SQL_ENSEMBL_COMPARA_SELECT_HOMOLOGS_HS_ORDER_BY
+        else:
+            e_id = 'mm_id'
+            sql += SQL_ENSEMBL_COMPARA_SELECT_HOMOLOGS_MM_ORDER_BY
+
+        LOG.debug('Extracting homologs ...')
+        with conn.cursor() as cursor:
+            count = 0
+            num_rows = cursor.execute(sql)
+            LOG.debug(f'{num_rows:,} records returned')
+
+            for row in cursor:
+                if row[e_id] not in homologs:
+                    homologs[row[e_id]] = [row]
+                else:
+                    homologs[row[e_id]].append(row)
+
+                if count and count % 10000 == 0:
+                    LOG.debug(f'{count:,} homologs extracted')
+                count += 1
+
+            LOG.debug(f'{count:,} homologs extracted')
+
+    except pymysql.Error as e:
+        LOG.error(f'Unable to extract homologs from Ensembl: {e}')
+        return None
+
+    return homologs
 
 
 

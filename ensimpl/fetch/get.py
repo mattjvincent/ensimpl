@@ -22,14 +22,11 @@ def chromosomes(species_id=None, version=None):
             * order
 
     """
-    sql_chromosomes = 'SELECT * FROM chromosomes '
-    sql_order = ' ORDER BY chromosome_num '
+    sql_statement = 'SELECT * FROM chromosomes ORDER BY chromosome_num '
 
     conn = fetch_utils.connect_to_database(species_id, version)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-
-    sql_statement = sql_chromosomes + sql_order
 
     chroms = []
 
@@ -61,29 +58,31 @@ def karyotypes(species_id=None, version=None):
                 * band
                 * stain
     """
-    sql_karyotypes = ('SELECT * FROM karyotypes k, chromosomes c '
-                      ' WHERE k.chromosome = c.chromosome ')
-    sql_order = ' ORDER BY c.chromosome_num, k.seq_region_start '
+    sql_statement = '''
+        SELECT * 
+          FROM karyotypes k, chromosomes c
+         WHERE k.chromosome = c.chromosome
+        ORDER BY c.chromosome_num, k.seq_region_start
+    '''
 
     conn = fetch_utils.connect_to_database(species_id, version)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    sql_statement = sql_karyotypes + sql_order
-
     karyotype_data = OrderedDict()
 
     for row in cursor.execute(sql_statement):
         chrom_data = karyotype_data.get(row['chromosome'],
-                                      {'chromosome': row['chromosome'],
-                                       'length': row['chromosome_length'],
-                                       'order': row['chromosome_num'],
-                                       'karyotypes': []})
+                                        {'chromosome': row['chromosome'],
+                                         'length': row['chromosome_length'],
+                                         'order': row['chromosome_num'],
+                                         'karyotypes': []})
 
         chrom_data['karyotypes'].append({'seq_region_start': row['seq_region_start'],
                                          'seq_region_end': row['seq_region_end'],
                                          'band': row['band'],
                                          'stain': row['stain']})
+
         karyotype_data[row['chromosome']] = chrom_data
 
     # turn into a list
@@ -119,7 +118,7 @@ def meta(species_id=None, version=None):
     for row in cursor.execute(sql_meta):
         meta_data['species'] = row['species_id']
 
-        for val in ['version', 'assembly', 'assembly_patch']:
+        for val in ['version', 'assembly', 'assembly_patch', 'url']:
             if row['meta_key'] == val:
                 meta_data[val] = row['meta_value']
 
@@ -166,3 +165,44 @@ def info(species_id=None, version=None):
     conn.close()
 
     return stats
+
+
+def external_dbs(species_id=None, version=None):
+    """Get the chromosomes.
+
+    Args:
+        species_id (str): The Ensembl species identifier.
+        version (int): The Ensembl version.
+
+    Returns:
+        list: A ``list`` of ``dicts`` with the following keys:
+            * external_db_id
+            * external_db_name
+            * ranking_id
+
+    """
+    sql_statement = 'SELECT * FROM external_dbs ORDER BY external_db_key '
+
+    conn = fetch_utils.connect_to_database(species_id, version)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    ext_dbs = []
+
+    species_id = fetch_utils.nvl(species_id, 'Mm')
+
+    for row in cursor.execute(sql_statement):
+
+        if species_id.lower() == 'hs' and row['ranking_id'] == 'MI':
+            continue
+        elif species_id.lower() == 'mm' and row['ranking_id'] == 'HG':
+            continue
+
+        ext_dbs.append({
+            'external_db_id': row['external_db_id'],
+            'external_db_name': row['external_db_name'],
+            'ranking_id': row['ranking_id']
+        })
+
+    return ext_dbs
+

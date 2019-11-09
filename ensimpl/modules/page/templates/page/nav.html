@@ -9,16 +9,19 @@
       <!-- mr-auto will push all links to LEFT //-->
       <ul class="navbar-nav mr-auto">
           <li class="nav-item">
-              <a href="{{ url_for('page.search', _external=False) }}" class="pl-5"><i class="fas fa-code"></i> Search</a>
+              <a href="{{ url_for('page.search', _external=False) }}" class="pl-5"><i class="fab fa-searchengin"></i> Search</a>
           </li>
           <li class="nav-item">
-              <a href="{{ url_for('page.navigator', _external=False) }}" class="pl-5"><i class="fas fa-info-circle"></i> Navigator</a>
+              <a href="{{ url_for('page.navigator', _external=False) }}" class="pl-5"><i class="far fa-compass"></i> Navigator</a>
           </li>
           <li class="nav-item">
-              <a href="{{ url_for('page.lookup', _external=False) }}" class="pl-5"><i class="fas fa-question-circle"></i> Lookup</a>
+              <a href="{{ url_for('page.lookup', _external=False) }}" class="pl-5"><i class="far fa-list-alt"></i> Lookup</a>
           </li>
           <li class="nav-item">
-              <a href="{{ url_for('page.history', _external=False) }}" class="pl-5"><i class="fas fa-question-circle"></i> History</a>
+              <a href="{{ url_for('page.external_ids', _external=False) }}" class="pl-5"><i class="fas fa-exchange-alt"></i> External Lookup</a>
+          </li>
+          <li class="nav-item">
+              <a href="{{ url_for('page.history', _external=False) }}" class="pl-5"><i class="fas fa-landmark"></i> History</a>
           </li>
           <li class="nav-item">
               <a href="{{ url_for('page.help', _external=False) }}" class="pl-5"><i class="fas fa-question-circle"></i> Help</a>
@@ -26,3 +29,4 @@
       </ul>
   </div>
 </nav>
+

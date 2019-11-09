@@ -138,6 +138,12 @@
                                     External ID
                                 </label>
                             </div>
+                            <div class="form-check m-0">
+                                <input class="form-check-input" type="checkbox" value="homolog_ids" id="column_homolog_ids">
+                                <label class="form-check-label" for="column_homolog_ids">
+                                    Homolog IDs
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -241,6 +247,8 @@
                     h += '<th class="" scope="col">Synonyms</th>';
                 } else if (elem.value === 'external_ids') {
                     h += '<th class="" scope="col">External ID</th>';
+                } else if (elem.value === 'homolog_ids') {
+                    h += '<th class="" scope="col">Homolog IDs</th>';
                 } else if (elem.value === 'match_reason') {
                     h += '<th class="" scope="col">Match Reason</th>';
                 } else if (elem.value === 'match_value') {
@@ -312,6 +320,20 @@
                                         });
 
                                         h2 += '<td>' + nvl(external_ids, defaultValue) + '</td>';
+                                    } else {
+                                        h2 += '<td>' + defaultValue + '</td>';
+                                    }
+                                } else if (elem2.value === 'homolog_ids') {
+                                    if ('homolog_ids' in elem) {
+                                        let homolog_ids = [];
+
+                                        $.each(elem.homolog_ids, function(i, e) {
+                                            homolog_ids.push(e['homolog_id'] + ':' + e['homolog_symbol']);
+                                        });
+
+                                        let homologs = homolog_ids.join('<br>');
+
+                                        h2 += '<td>' + nvl(homologs, defaultValue) + '</td>';
                                     } else {
                                         h2 += '<td>' + defaultValue + '</td>';
                                     }
@@ -420,6 +442,8 @@
                     header.push('"Gene Synonyms"');
                 } else if (elem.value === 'external_ids') {
                     header.push('"External ID"');
+                } else if (elem.value === 'homolog_ids') {
+                    header.push('"Homolog IDs"');
                 }
             });
 
@@ -474,7 +498,6 @@
                                 val.push('"' + defaultValue + '"');
                             }
                         } else if (elem2.value === 'external_ids') {
-
                             if ('external_ids' in elem) {
                                 let external_ids = null;
 
@@ -485,6 +508,20 @@
                                 });
 
                                 val.push('"' + nvl(external_ids, defaultValue) + '"');
+                            } else {
+                                val.push('"' + defaultValue + '"');
+                            }
+                        } else if (elem2.value === 'homolog_ids') {
+                            if ('homolog_ids' in elem) {
+                                let homolog_ids = [];
+
+                                $.each(elem.homolog_ids, function(i, e) {
+                                    homolog_ids.push(e['homolog_id'] + ':' + e['homolog_symbol']);
+                                });
+
+                                let homologs = homolog_ids.join('/');
+
+                                val.push('"' + nvl(homologs, defaultValue) + '"');
                             } else {
                                 val.push('"' + defaultValue + '"');
                             }

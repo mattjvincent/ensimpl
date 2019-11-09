@@ -1,13 +1,14 @@
 # Flask
-Flask==1.0.2
-Flask-Cors==3.0.7
+Flask==1.1.1
+Flask-Cors==3.0.8
+Flask-Compress==1.4.0
 
 # Application server for both development and production.
 gunicorn==19.9.0
 
-# MySQL.
-PyMySQL==0.9.2
+# MySQL
+PyMySQL==0.9.3
 
-# Others.
-natsort==5.5.0
-tabulate==0.8.2
+# Others
+natsort==6.0.0
+tabulate==0.8.5

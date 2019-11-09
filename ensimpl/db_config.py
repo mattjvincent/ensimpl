@@ -34,13 +34,13 @@ def get_ensimpl_db(version, species):
             'ensimpl.91.Mm.db3'
     """
     try:
-        return ENSIMPL_DBS_DICT['{}:{}'.format(int(version), species)]
+        return ENSIMPL_DBS_DICT[f'{int(version)}:{species}']
     except KeyError as ke:
-        error = 'Unable to find version "{}" and species "{}"'
-        raise ValueError(error.format(version, species))
+        error = f'Unable to find version "{version}" and species "{species}"'
+        raise ValueError(error)
     except ValueError as ve:
-        error = 'Version "{}" does not appear to be a numeric value'
-        raise ValueError(error.format(version, species))
+        error = f'Version "{version}" does not appear to be a numeric value'
+        raise ValueError(error)
 
 
 def get_all_ensimpl_dbs(directory):
@@ -66,7 +66,7 @@ def get_all_ensimpl_dbs(directory):
         db_list.append(val)
 
         # combined key will be 'version:species'
-        combined_key = '{}:{}'.format(val['version'], val['species'])
+        combined_key = f'{val["version"]}:{val["species"]}'
         db_dict[combined_key] = val
 
     # sort the databases in descending order by version and than species for
@@ -106,12 +106,12 @@ def init(directory=None):
 
     if not os.path.exists(ensimpl_dir):
         print('Specified ENSIMPL_DIR does not exits')
-        print('ENSIMPL_DIR = "{}"'.format(ensimpl_dir))
+        print(f'ENSIMPL_DIR = "{ensimpl_dir}"')
         sys.exit()
 
     if not os.path.isdir(ensimpl_dir):
         print('Specified ENSIMPL_DIR is not a directory')
-        print('ENSIMPL_DIR = "{}"'.format(ensimpl_dir))
+        print(f'ENSIMPL_DIR = "{ensimpl_dir}"')
         sys.exit()
 
     get_all_ensimpl_dbs(ensimpl_dir)

@@ -8,10 +8,13 @@ import ensimpl.utils as utils
 
 LOG = utils.get_logger()
 
-RANKING_ID = {'EntrezGene': 'ZG',
-              'MGI': 'MI',
-              'UniGene': 'UG',
-              'HGNC': 'HG'}
+
+EXTERNAL_DATABASES = {
+    'EntrezGene': {'id': 'ZG', 'display': 'NCBI gene'},
+    'HGNC': {'id': 'HG', 'display': 'HGNC Symbol'},
+    'MGI': {'id': 'MI', 'display': 'MGI Symbol'},
+    'Uniprot_gn': {'id': 'UG', 'display': 'UniProtKB Gene'}
+}
 
 
 def initialize(db):
@@ -27,11 +30,13 @@ def initialize(db):
     cursor = conn.cursor()
 
     LOG.info('Generating tables...')
+
     for sql in SQL_CREATE_TABLES:
         LOG.debug(sql)
         cursor.execute(sql)
 
     LOG.info('Initializing tables...')
+
     for sql in SQL_TABLES_INITIALIZE:
         LOG.debug(sql)
         cursor.execute(sql)
@@ -40,8 +45,8 @@ def initialize(db):
     conn.commit()
     conn.close()
 
-    LOG.info('Database initialized in: {}'.format(
-        utils.format_time(start, time.time())))
+    LOG.info('Database initialized in: '
+             f'{utils.format_time(start, time.time())}')
 
 
 def insert_chromosomes_karyotypes(db, ref, chromosomes):
@@ -87,25 +92,29 @@ def insert_chromosomes_karyotypes(db, ref, chromosomes):
                                ref.species_id))
 
     chromosome_data = []
+
     for k, v in chromosome_temp.items():
         chromosome_data.append((v))
 
     cursor = conn.cursor()
-    LOG.debug('Inserting {:,} karyotypes...'.format(len(karyotype_data)))
+
+    LOG.debug(f'Inserting {len(karyotype_data):,} karyotypes...')
+
     cursor.executemany(sql_karyotypes_insert, karyotype_data)
 
-    LOG.debug('Inserting {:,} chromosomes...'.format(len(chromosome_data)))
+    LOG.debug(f'Inserting {len(chromosome_data):,} chromosomes...')
+
     cursor.executemany(sql_chromosomes_insert, chromosome_data)
 
     cursor.close()
     conn.commit()
     conn.close()
 
-    LOG.info('Chromosomes and karyotpes inserted in: {}'.format(
-        utils.format_time(start, time.time())))
+    LOG.info('Chromosomes and karyotpes inserted in: '
+             f'{utils.format_time(start, time.time())}')
 
 
-def insert_genes(db, ref, genes, synonyms):
+def insert_genes(db, ref, genes, synonyms, homologs):
     """Insert genes into the database.
 
     Args:
@@ -114,30 +123,51 @@ def insert_genes(db, ref, genes, synonyms):
         ref (:obj:`ensimpl.create.create_ensimpl.EnsemblReference`):
             Contains information about the Ensembl reference.
 
-        genes (dict): Gene information withe Ensembl ID being the key.  Values
+        genes (dict): Gene information with Ensembl ID being the key.  Values
             were extracted via the following method:
             :func:`ensimpl.create.ensembl_db.extract_ensembl_genes`.
 
         synonyms (dict): Synonym information with xref_id being the key. Values
             were extracted via the following method:
             :func:`ensimpl.create.ensembl_db.extract_synonyms`.
+
+        homologs (dict): Homolog ids Values were extracted via the following
+            method:
+            :func:`ensimpl.create.ensembl_db.extract_homologs`.
     """
     LOG.info('Inserting genes into database: {}'.format(db))
 
     start = time.time()
     conn = sqlite3.connect(db)
 
-    sql_genes_insert = 'INSERT INTO ensembl_genes_tmp ' + \
-                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    sql_genes_insert = ('INSERT INTO ensembl_genes_tmp '
+                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 
-    sql_genes_lookup_insert = 'INSERT INTO ensembl_genes_lookup_tmp ' + \
-                              'VALUES (?, ?, ?, ?);'
+    sql_gene_ids_insert = ('INSERT INTO ensembl_gene_ids_tmp '
+                           'VALUES (?, ?, ?, ?)')
+
+    sql_genes_lookup_insert = ('INSERT INTO ensembl_genes_lookup_tmp '
+                               'VALUES (?, ?, ?, ?);')
 
     gene_data = []
+    gene_ids_data = []
     gene_lookup_data = []
     counter = 0
 
     species_id = ref.species_id
+
+    local_external_dbs = EXTERNAL_DATABASES.copy()
+
+    if species_id.lower() == 'hs':
+        h_id = 'mm_id'
+        h_ver = 'mm_version'
+        h_symbol = 'mm_symbol'
+        del local_external_dbs['MGI']
+    else:
+        h_id = 'hs_id'
+        h_ver = 'hs_version'
+        h_symbol = 'hs_symbol'
+        del local_external_dbs['HGNC']
 
     for gene_id, gene in sorted(genes.items()):
 
@@ -152,20 +182,27 @@ def insert_genes(db, ref, genes, synonyms):
 
         ids_text = None
         synonyms_text = None
+        homolog_text = None
 
         ids = gene.get('ids', None)
         if ids:
             ids_tmp = []
             synonyms_tmp = []
+
             for i in ids:
                 db_name = i['db_name']
-                ranking_id = RANKING_ID.get(db_name, None)
+                ranking_id = local_external_dbs.get(db_name, None)
 
                 # only take the databases we define
                 if ranking_id:
                     ids_tmp.append('{}/{}'.format(db_name, i['external_id']))
+
+                    gene_ids_data.append((ensembl_id, i['external_id'],
+                                          db_name, species_id))
+
                     gene_lookup_data.append((ensembl_id, i['external_id'],
-                                             ranking_id, species_id))
+                                             ranking_id['id'], species_id))
+
                     synonyms_tmp.extend(synonyms.get(i['xref_id'], []))
 
             if len(ids_tmp) > 0:
@@ -177,9 +214,25 @@ def insert_genes(db, ref, genes, synonyms):
             for s in synonyms_tmp:
                 gene_lookup_data.append((ensembl_id, s, 'GY', species_id))
 
+        hom_ids = homologs.get(ensembl_id, None)
+
+        if hom_ids:
+            hom_tmp = []
+
+            for h in hom_ids:
+                hom_id = f'{h[h_id]}.{h[h_ver]}'
+                hom_tmp.append(f'{hom_id}/{h[h_symbol]}')
+                gene_lookup_data.append((ensembl_id, h[h_id],
+                                         'HG', species_id))
+                gene_ids_data.append((ensembl_id, h[h_id],
+                                      'Ensembl_homolog', species_id))
+
+            if len(hom_tmp) > 0:
+                homolog_text = '||'.join(hom_tmp)
+
         gene_data.append((ensembl_id, ensembl_id_version, species_id, symbol,
                           description, synonyms_text, ids_text, seq_id,
-                          seq_start, seq_end, strand))
+                          seq_start, seq_end, strand, homolog_text))
 
         gene_lookup_data.append((ensembl_id, ensembl_id, 'EG', species_id))
         gene_lookup_data.append((ensembl_id, symbol, 'GS', species_id))
@@ -188,37 +241,54 @@ def insert_genes(db, ref, genes, synonyms):
             gene_lookup_data.append((ensembl_id, description, 'GN', species_id))
 
         if counter and counter % 10000 == 0:
+            LOG.debug(f'Inserting {len(gene_data):,} genes...')
+
             cursor = conn.cursor()
-            LOG.debug('Inserting {:,} genes...'.format(len(gene_data)))
             cursor.executemany(sql_genes_insert, gene_data)
             cursor.close()
             conn.commit()
             gene_data = []
 
-            LOG.debug('Inserting {:,} '
-                      'lookup records...'.format(len(gene_lookup_data)))
+            LOG.debug(f'Inserting {len(gene_ids_data):,} gene id records...')
+
+            cursor = conn.cursor()
+            cursor.executemany(sql_gene_ids_insert, gene_ids_data)
+            cursor.close()
+            conn.commit()
+            gene_ids_data = []
+
+            LOG.debug(f'Inserting {len(gene_lookup_data):,} lookup records...')
+
             cursor = conn.cursor()
             cursor.executemany(sql_genes_lookup_insert, gene_lookup_data)
             cursor.close()
             conn.commit()
             gene_lookup_data = []
 
+    LOG.debug(f'Inserting {len(gene_data):,} genes...')
+
     cursor = conn.cursor()
-    LOG.debug('Inserting {:,} genes...'.format(len(gene_data)))
     cursor.executemany(sql_genes_insert, gene_data)
     cursor.close()
     conn.commit()
 
-    LOG.debug('Inserting {:,} '
-              'lookup records...'.format(len(gene_lookup_data)))
+    LOG.debug(f'Inserting {len(gene_ids_data):,} gene id records...')
+
+    cursor = conn.cursor()
+    cursor.executemany(sql_gene_ids_insert, gene_ids_data)
+    cursor.close()
+    conn.commit()
+
+    LOG.debug(f'Inserting {len(gene_lookup_data):,} lookup records...')
+
     cursor = conn.cursor()
     cursor.executemany(sql_genes_lookup_insert, gene_lookup_data)
     cursor.close()
     conn.commit()
     conn.close()
 
-    LOG.info('Gene information inserted in: {}'.format(
-        utils.format_time(start, time.time())))
+    LOG.info('Gene information inserted in: '
+             f'{utils.format_time(start, time.time())}')
 
 
 def insert_gtpe(db, ref, gtep):
@@ -238,9 +308,9 @@ def insert_gtpe(db, ref, gtep):
              'into database: {}'.format(db))
     start = time.time()
 
-    sql_gtpe_insert = 'INSERT INTO ensembl_gtpe_tmp ' + \
-                      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ' + \
-                      '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    sql_gtpe_insert = ('INSERT INTO ensembl_gtpe_tmp '
+                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, '
+                       '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 
     attributes = ['gene_id', 'gene_version', 'gene_name', 'gene_chrom',
                   'gene_start', 'gene_end', 'gene_strand',
@@ -263,21 +333,101 @@ def insert_gtpe(db, ref, gtep):
 
         if counter and counter % 50000 == 0:
             cursor = conn.cursor()
-            LOG.debug('Inserting {:,} rows...'.format(len(gtpe_data)))
+            LOG.debug(f'Inserting {len(gtpe_data):,} rows...')
             cursor.executemany(sql_gtpe_insert, gtpe_data)
             cursor.close()
             conn.commit()
             gtpe_data = []
 
-    LOG.debug('Inserting {:,} rows...'.format(len(gtpe_data)))
+    LOG.debug(f'Inserting {len(gtpe_data):,} rows...')
+
     cursor = conn.cursor()
     cursor.executemany(sql_gtpe_insert, gtpe_data)
     cursor.close()
     conn.commit()
     conn.close()
 
-    LOG.info('Transcripts, proteins, exons inserted in: {}'.format(
-        utils.format_time(start, time.time())))
+    LOG.info('Transcripts, proteins, exons inserted in: '
+             f'{utils.format_time(start, time.time())}')
+
+
+def insert_homologs(db, ref, homologs):
+    """Insert the gene, transcript, protein, exon information into the database.
+
+    Args:
+        db (str): Name of the database file.
+
+        ref (:obj:`ensimpl.create.create_ensimpl.EnsemblReference`):
+            Contains information about the Ensembl reference.
+
+        homologs (dict): Homolog ids Values were extracted via the following
+            method:
+            :func:`ensimpl.create.ensembl_db.extract_homologs`.
+    """
+    LOG.info('Inserting homologs into database: {}'.format(db))
+    start = time.time()
+
+    sql_homolog_insert = ('INSERT INTO ensembl_homologs_tmp '
+                          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, '
+                          '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+
+    if ref.species_id.lower() == 'hs':
+        attributes = ['hs_id', 'hs_version', 'hs_symbol',
+                      'hs_perc_cov', 'hs_perc_id', 'hs_perc_pos',
+                      'mm_id', 'mm_version', 'mm_symbol']
+        attributes_2 = ['mm_perc_cov', 'mm_perc_id', 'mm_perc_pos',
+                        'description', 'dn', 'ds', 'goc_score']
+        homology_species_id = 'Mm'
+    else:
+        attributes = ['mm_id', 'mm_version', 'mm_symbol',
+                      'mm_perc_cov', 'mm_perc_id', 'mm_perc_pos',
+                      'hs_id', 'hs_version', 'hs_symbol']
+        attributes_2 = ['hs_perc_cov', 'hs_perc_id', 'hs_perc_pos',
+                        'description', 'dn', 'ds', 'goc_score']
+        homology_species_id = 'Hs'
+
+    LOG.info('Generating homologs table...')
+
+    conn = sqlite3.connect(db)
+    homology_data = []
+    species_id = ref.species_id
+    counter = 0
+
+    for (_id, val) in homologs.items():
+        for h in val:
+            row = [h[attr] for attr in attributes]
+            row.append(homology_species_id)
+            row.extend([h[attr] for attr in attributes_2])
+
+            if h['wga_coverage']:
+                row.append(float(h['wga_coverage']))
+            else:
+                row.append(None)
+
+            row.append(h['is_high_confidence'])
+            row.append(species_id)
+
+            homology_data.append(tuple(row))
+
+            if counter and counter % 5000 == 0:
+                LOG.debug(f'Inserting {len(homology_data):,} rows...')
+
+                cursor = conn.cursor()
+                cursor.executemany(sql_homolog_insert, homology_data)
+                cursor.close()
+                conn.commit()
+                homology_data = []
+
+    LOG.debug(f'Inserting {len(homology_data):,} rows...')
+
+    cursor = conn.cursor()
+    cursor.executemany(sql_homolog_insert, homology_data)
+    cursor.close()
+    conn.commit()
+    conn.close()
+
+    LOG.info('Homology records inserted in: '
+             f'{utils.format_time(start, time.time())}')
 
 
 def finalize(db, ref):
@@ -294,7 +444,7 @@ def finalize(db, ref):
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
 
-    LOG.info("Finalizing database....")
+    LOG.info('Finalizing database...')
 
     sql_meta_insert = 'INSERT INTO meta_info VALUES (null, ?, ?, ?)'
 
@@ -302,40 +452,72 @@ def finalize(db, ref):
     meta_data.append(('version', ref.version, ref.species_id))
     meta_data.append(('assembly', ref.assembly, ref.species_id))
     meta_data.append(('assembly_patch', ref.assembly_patch, ref.species_id))
+    meta_data.append(('url', ref.url, ref.species_id))
 
     cursor.executemany(sql_meta_insert, meta_data)
+    conn.commit()
+
+    LOG.info('Finalizing external databases table...')
+
+    sql_external_insert = 'INSERT INTO external_dbs VALUES (null, ?, ?, ?)'
+
+    external_db_data = []
+
+    for (k, v) in EXTERNAL_DATABASES.items():
+        external_db_data.append((k, v['display'], v['id']))
+
+    cursor.executemany(sql_external_insert, external_db_data)
+    conn.commit()
 
     LOG.info('Finalizing chromosomes table...')
+
     cursor.execute(SQL_INSERT_CHROMOSOMES)
     conn.commit()
 
     LOG.info('Finalizing karyotypes table...')
+
     cursor.execute(SQL_INSERT_KARYOTYPES)
     conn.commit()
 
     LOG.info('Finalizing genes table...')
+
     cursor.execute(SQL_INSERT_GENES)
     conn.commit()
 
+    LOG.info('Finalizing gene ids table...')
+
+    cursor.execute(SQL_INSERT_GENE_IDS)
+    conn.commit()
+
+    LOG.info('Finalizing homologs table...')
+
+    cursor.execute(SQL_INSERT_HOMOLOGS)
+    conn.commit()
+
     LOG.info('Finalizing transcript, protein, exon table...')
+
     cursor.execute(SQL_INSERT_GTPE)
     conn.commit()
 
     LOG.info('Updating genes lookup...')
+
     cursor.execute(SQL_GENES_LOOKUP_TMP_INSERT)
     cursor.execute(SQL_GENES_LOOKUP_INSERT)
     conn.commit()
 
     LOG.info('Creating search table...')
+
     cursor.execute(SQL_ENSEMBL_SEARCH_INSERT)
     conn.commit()
 
     LOG.info('Creating indices...')
+
     for sql in SQL_INDICES:
         LOG.debug(sql)
         cursor.execute(sql)
 
     LOG.info('Cleaning up...')
+
     for sql in SQL_TABLES_DROP:
         LOG.debug(sql)
         cursor.execute(sql)
@@ -343,6 +525,7 @@ def finalize(db, ref):
     conn.row_factory = sqlite3.Row
 
     LOG.info('Checking...')
+
     for sql in SQL_SELECT_CHECKS:
         LOG.debug(sql)
         cursor = conn.cursor()
@@ -355,6 +538,7 @@ def finalize(db, ref):
         cursor.close()
 
     LOG.info('Information')
+
     for sql in SQL_SELECT_FINAL_INFO:
         LOG.debug(sql)
         cursor = conn.cursor()
@@ -368,8 +552,8 @@ def finalize(db, ref):
     conn.commit()
     conn.close()
 
-    LOG.info("Finalizing complete: {0}".format(
-        utils.format_time(start, time.time())))
+    LOG.info('Finalizing complete:: '
+             f'{utils.format_time(start, time.time())}')
 
 
 SQL_CREATE_TABLES = ['''
@@ -440,6 +624,7 @@ SQL_CREATE_TABLES = ['''
        start_position INTEGER NOT NULL,
        end_position INTEGER NOT NULL,
        strand INTEGER NOT NULL,
+       homolog_ids TEXT,
        PRIMARY KEY (ensembl_genes_key)
     );
 ''', '''
@@ -454,9 +639,74 @@ SQL_CREATE_TABLES = ['''
        chromosome TEXT NOT NULL,
        start_position INTEGER NOT NULL,
        end_position INTEGER NOT NULL,
-       strand INTEGER NOT NULL
+       strand INTEGER NOT NULL,
+       homolog_ids TEXT
     );
 ''', '''
+    CREATE TABLE IF NOT EXISTS ensembl_gene_ids (
+       ensembl_gene_ids_key INTEGER,
+       ensembl_id TEXT NOT NULL,
+       external_id TEXT NOT NULL,
+       external_db TEXT NOT NULL,
+       species_id TEXT NOT NULL,
+       PRIMARY KEY (ensembl_gene_ids_key)
+    );
+''', '''
+    CREATE TABLE IF NOT EXISTS ensembl_gene_ids_tmp (
+       ensembl_id TEXT NOT NULL,
+       external_id TEXT NOT NULL,
+       external_db TEXT NOT NULL,
+       species_id TEXT NOT NULL
+    );
+''', '''
+    CREATE TABLE IF NOT EXISTS ensembl_homologs (
+       ensembl_homologs_key INTEGER,
+       ensembl_id TEXT NOT NULL,
+       ensembl_version TEXT,
+       ensembl_symbol TEXT,
+       perc_cov REAL,
+       perc_id REAL,
+       perc_pos REAL,            
+       homolog_id TEXT NOT NULL,
+       homolog_version TEXT,
+       homolog_symbol TEXT,
+       homolog_species_id TEXT NOT NULL,       
+       homolog_perc_cov REAL,
+       homolog_perc_id REAL,
+       homolog_perc_pos REAL,             
+       description TEXT NOT NULL,
+       dn REAL,
+       ds REAL,
+       goc_score REAL,
+       wga_coverage REAL,
+       is_high_confidence INTEGER,
+       species_id TEXT NOT NULL,
+       PRIMARY KEY (ensembl_homologs_key)
+    );
+''', '''
+    CREATE TABLE IF NOT EXISTS ensembl_homologs_tmp (
+       ensembl_id TEXT NOT NULL,
+       ensembl_version TEXT,
+       ensembl_symbol TEXT,
+       perc_cov REAL,
+       perc_id REAL,
+       perc_pos REAL,            
+       homolog_id TEXT NOT NULL,
+       homolog_version TEXT,
+       homolog_symbol TEXT,
+       homolog_species_id TEXT NOT NULL,       
+       homolog_perc_cov REAL,
+       homolog_perc_id REAL,
+       homolog_perc_pos REAL,             
+       description TEXT NOT NULL,
+       dn REAL,
+       ds REAL,
+       goc_score REAL,
+       wga_coverage REAL,
+       is_high_confidence INTEGER,
+       species_id TEXT NOT NULL
+    );
+''', '''    
     CREATE TABLE IF NOT EXISTS ensembl_genes_lookup (
        ensembl_genes_lookup_key INTEGER,
        ensembl_gene_id TEXT,
@@ -497,9 +747,9 @@ SQL_CREATE_TABLES = ['''
     );
 ''', '''
     CREATE TABLE IF NOT EXISTS ensembl_gtpe (
-        gtpe_key INTEGER PRIMARY KEY,
+        gtpe_key INTEGER,
         species_id TEXT NOT NULL,
-        gene_id TEXT  NOT NULL,
+        gene_id TEXT NOT NULL,
         transcript_id TEXT,
         ensembl_id TEXT NOT NULL,
         ensembl_id_version INTEGER,
@@ -509,12 +759,23 @@ SQL_CREATE_TABLES = ['''
         end INTEGER,
         strand INTEGER,
         exon_number INTEGER,
-        type_key TEXT NOT NULL
+        type_key TEXT NOT NULL,
+        PRIMARY KEY (gtpe_key)
+    )
+''', '''
+    CREATE TABLE IF NOT EXISTS external_dbs (
+        external_db_key INTEGER,
+        external_db_id TEXT NOT NULL,
+        external_db_name TEXT NOT NULL,
+        ranking_id TEXT NOT NULL,
+        PRIMARY KEY (external_db_key)        
     )
 ''', '''
     CREATE VIRTUAL TABLE IF NOT EXISTS ensembl_search
         USING fts4(ensembl_genes_lookup_key, lookup_value);
 ''']
+
+# NOTE: as of this time (10/2019) FTS5 cannot do phrase queries
 
 SQL_INSERT_CHROMOSOMES = '''
     INSERT
@@ -557,9 +818,51 @@ SQL_INSERT_GENES = '''
            chromosome,
            start_position,
            end_position,
-           strand
+           strand,
+           homolog_ids
       FROM ensembl_genes_tmp
      ORDER BY species_id, ensembl_id;
+'''
+
+SQL_INSERT_HOMOLOGS = '''
+    INSERT
+      INTO ensembl_homologs
+    SELECT distinct null key,
+           ensembl_id,
+           ensembl_version,
+           ensembl_symbol,
+           perc_cov,
+           perc_id,
+           perc_pos,            
+           homolog_id,
+           homolog_version,
+           homolog_symbol,
+           homolog_species_id,       
+           homolog_perc_cov,
+           homolog_perc_id,
+           homolog_perc_pos,             
+           description,
+           dn,
+           ds,
+           goc_score,
+           wga_coverage,
+           is_high_confidence,     
+           species_id
+      FROM ensembl_homologs_tmp
+     WHERE ensembl_id in (select ensembl_id from ensembl_genes_tmp)      
+     ORDER BY ensembl_id, homolog_id;
+'''
+
+SQL_INSERT_GENE_IDS = '''
+    INSERT
+      INTO ensembl_gene_ids
+    SELECT distinct null key,
+           ensembl_id,
+           external_id,
+           external_db,
+           species_id
+      FROM ensembl_gene_ids_tmp
+     ORDER BY ensembl_id;
 '''
 
 SQL_INSERT_GTPE = '''
@@ -625,7 +928,8 @@ SQL_INSERT_GTPE = '''
            exon_number,
            'EE'
       FROM ensembl_gtpe_tmp
-     ORDER BY species_id, gene_id, transcript_id, ensembl_symbol desc, exon_number
+     ORDER BY species_id, gene_id, transcript_id, 
+              ensembl_symbol desc, exon_number
 '''
 
 SQL_GENES_LOOKUP_TMP_INSERT = '''
@@ -682,51 +986,139 @@ SQL_ENSEMBL_SEARCH_INSERT = '''
 '''
 
 SQL_INDICES = [
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_species_id ON ensembl_gtpe(species_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_gene_id ON ensembl_gtpe(gene_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_transcript_id ON ensembl_gtpe(transcript_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_ensembl_id ON ensembl_gtpe(ensembl_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_ensembl_id_version ON ensembl_gtpe(ensembl_id_version ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_seqid ON ensembl_gtpe(seqid ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_start ON ensembl_gtpe(start ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_end ON ensembl_gtpe(end ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_exon_number ON ensembl_gtpe(exon_number ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_gtpe_type_key ON ensembl_gtpe(type_key ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_ensembl_gene_id ON ensembl_genes (ensembl_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_lookup_ensembl_gene_id ON ensembl_genes_lookup (ensembl_gene_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_lookup_value ON ensembl_genes_lookup (lookup_value ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_lookup_id ON ensembl_genes_lookup (ranking_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_lookup_species_id ON ensembl_genes_lookup (species_id ASC)',
-    'CREATE INDEX IF NOT EXISTS idx_chromosomes_cnum ON chromosomes (chromosome_num ASC);',
-    'CREATE INDEX IF NOT EXISTS idx_chromosomes_chrom ON chromosomes (chromosome ASC);',
-    'CREATE INDEX IF NOT EXISTS idx_chromosomes_species ON chromosomes (species_id ASC);',
-    'CREATE INDEX IF NOT EXISTS idx_karyotypes_knum ON karyotypes (karyotype_num ASC);',
-    'CREATE INDEX IF NOT EXISTS idx_karyotypes_chrom ON karyotypes (chromosome ASC);',
-    'CREATE INDEX IF NOT EXISTS idx_karyotypes_species ON karyotypes (species_id ASC);',
-    'CREATE INDEX IF NOT EXISTS idx_search_ranking_id ON search_ranking (ranking_id ASC);'
+    '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_species_id 
+    ON ensembl_gtpe(species_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_gene_id 
+    ON ensembl_gtpe(gene_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_transcript_id 
+    ON ensembl_gtpe(transcript_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_ensembl_id 
+    ON ensembl_gtpe(ensembl_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_ensembl_id_version 
+    ON ensembl_gtpe(ensembl_id_version ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_seqid 
+    ON ensembl_gtpe(seqid ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_start
+     ON ensembl_gtpe(start ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_end 
+    ON ensembl_gtpe(end ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_exon_number 
+    ON ensembl_gtpe(exon_number ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_gtpe_type_key 
+    ON ensembl_gtpe(type_key ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_homolog_ensembl_id 
+    ON ensembl_homologs (ensembl_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_homolog_homolog_id 
+    ON ensembl_homologs (homolog_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_ensembl_gene_id 
+    ON ensembl_genes (ensembl_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_ensembl_gene_ids_ensembl_id 
+    ON ensembl_gene_ids (ensembl_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_ensembl_gene_ids_external_id 
+    ON ensembl_gene_ids (external_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_lookup_ensembl_gene_id 
+    ON ensembl_genes_lookup (ensembl_gene_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_lookup_value 
+    ON ensembl_genes_lookup (lookup_value ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_lookup_id 
+    ON ensembl_genes_lookup (ranking_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_lookup_species_id 
+    ON ensembl_genes_lookup (species_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_chromosomes_cnum 
+    ON chromosomes (chromosome_num ASC);
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_chromosomes_chrom 
+    ON chromosomes (chromosome ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_chromosomes_species 
+    ON chromosomes (species_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_karyotypes_knum 
+    ON karyotypes (karyotype_num ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_karyotypes_chrom 
+    ON karyotypes (chromosome ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_karyotypes_species 
+    ON karyotypes (species_id ASC)
+    ''', '''
+    CREATE INDEX IF NOT EXISTS idx_search_ranking_id 
+    ON search_ranking (ranking_id ASC)
+    '''
 ]
 
 SQL_TABLES_DROP = [
     'DROP TABLE chromosomes_tmp',
     'DROP TABLE karyotypes_tmp',
     'DROP TABLE ensembl_genes_tmp',
+    'DROP TABLE ensembl_gene_ids_tmp',
+    'DROP TABLE ensembl_homologs_tmp',
     'DROP TABLE ensembl_genes_lookup_tmp',
     'DROP TABLE ensembl_gtpe_tmp'
 ]
 
+
 SQL_TABLES_INITIALIZE = [
-    'INSERT INTO search_ranking VALUES (null, "EE", 7000, "Ensembl Exon ID");',
-    'INSERT INTO search_ranking VALUES (null, "EP", 6500, "Ensembl Protein ID");',
-    'INSERT INTO search_ranking VALUES (null, "EG", 10000, "Ensembl Gene ID");',
-    'INSERT INTO search_ranking VALUES (null, "ET", 7500, "Ensembl Transcript ID");',
-    'INSERT INTO search_ranking VALUES (null, "GN", 5000, "Gene Name");',
-    'INSERT INTO search_ranking VALUES (null, "GS", 6000, "Gene Symbol");',
-    'INSERT INTO search_ranking VALUES (null, "GY", 5700, "Gene Synonym");',
-    'INSERT INTO search_ranking VALUES (null, "TS", 5500, "Transcript Symbol");',
-    'INSERT INTO search_ranking VALUES (null, "HG", 8300, "HGNC");',
-    'INSERT INTO search_ranking VALUES (null, "MI", 8200, "MGI");',
-    'INSERT INTO search_ranking VALUES (null, "UG", 8100, "UniGene");',
-    'INSERT INTO search_ranking VALUES (null, "ZG", 8000, "EntrezGene");',
+    '''
+    INSERT INTO search_ranking 
+    VALUES (null, "EE", 7000, "Ensembl Exon ID");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "EP", 6500, "Ensembl Protein ID");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "EG", 10000, "Ensembl Gene ID");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "ET", 7500, "Ensembl Transcript ID");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "GN", 5000, "Gene Name");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "GS", 6000, "Gene Symbol");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "GY", 5700, "Gene Synonym");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "TS", 5500, "Transcript Symbol");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "HG", 8400, "HGNC");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "MI", 8300, "MGI");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "UG", 8200, "Uniprot");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "ZG", 8100, "NCBI");
+    ''', '''
+    INSERT INTO search_ranking 
+    VALUES (null, "HG", 5500, "Homolog Ensembl ID");
+    '''
 ]
 
 SQL_SELECT_FINAL_INFO = [

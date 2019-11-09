@@ -7,10 +7,10 @@ import ensimpl.db_config as db_config
 
 LOG = utils.get_logger()
 
-REGEX_ENSEMBL_MOUSE_ID = re.compile("ENSMUS([EGTP])[0-9]{11}", re.IGNORECASE)
-REGEX_ENSEMBL_HUMAN_ID = re.compile("ENS([EGTP])[0-9]{11}", re.IGNORECASE)
-REGEX_MGI_ID = re.compile("MGI:[0-9]{1,}", re.IGNORECASE)
-REGEX_REGION = re.compile("(CHR|)*\s*([0-9]{1,2}|X|Y|MT)\s*(-|:)?\s*(\d+)\s*(MB|M|K|)?\s*(-|:|)?\s*(\d+|)\s*(MB|M|K|)?", re.IGNORECASE)
+REGEX_ENSEMBL_MOUSE_ID = re.compile('ENSMUS([EGTP])[0-9]{11}', re.IGNORECASE)
+REGEX_ENSEMBL_HUMAN_ID = re.compile('ENS([EGTP])[0-9]{11}', re.IGNORECASE)
+REGEX_MGI_ID = re.compile('MGI:[0-9]{1,}', re.IGNORECASE)
+REGEX_REGION = re.compile('(CHR|)*\s*([0-9]{1,2}|X|Y|MT)\s*(-|:)?\s*(\d+)\s*(MB|M|K|)?\s*(-|:|)?\s*(\d+|)\s*(MB|M|K|)?', re.IGNORECASE)
 
 
 class Region:
@@ -33,9 +33,7 @@ class Region:
         Returns:
             str: In the format of chromosome:start_position-end_position.
         """
-        return '{}:{}-{}'.format(self.chromosome,
-                                 self.start_position,
-                                 self.end_position)
+        return f'{self.chromosome}:{self.start_position}-{self.end_position}'
 
     def __repr__(self):
         """Internal representation.
@@ -43,10 +41,8 @@ class Region:
         Returns:
             str: The keys being the attributes.
         """
-        return "{}({}:{}-{}')".format(self.__class__,
-                                      self.chromosome,
-                                      self.start_position,
-                                      self.end_position)
+        return (f'{self.__class__}({self.chromosome}:'
+                f'{self.start_position}-{self.end_position})')
 
 
 def connect_to_database(species=None, version=None):
@@ -69,7 +65,7 @@ def connect_to_database(species=None, version=None):
         database = db_config.get_ensimpl_db(version, species)['db']
         return sqlite3.connect(database)
     except Exception as e:
-        LOG.error('Error connecting to database: {}'.format(str(e)))
+        LOG.error(f'Error connecting to database: {e}')
         raise e
 
 
@@ -166,11 +162,6 @@ def str_to_region(location):
     multiplier_one = match.group(5)
     multiplier_two = match.group(8)
 
-    print(match.groups())
-
-    print(multiplier_one, get_multiplier(multiplier_one))
-    print(multiplier_two, get_multiplier(multiplier_two))
-
     loc.start_position = int(loc.start_position)
     loc.end_position = int(loc.end_position)
 
@@ -234,6 +225,6 @@ def validate_ensembl_id(ensembl_id):
     elif REGEX_ENSEMBL_MOUSE_ID.match(valid_id):
         return valid_id
 
-    raise ValueError('Invalid Ensembl ID: {}'.format(ensembl_id))
+    raise ValueError(f'Invalid Ensembl ID: {ensembl_id}')
 
 

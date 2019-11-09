@@ -7,10 +7,10 @@ import ensimpl.fetch.utils as fetch_utils
 
 LOG = utils.get_logger()
 
-REGEX_ENSEMBL_MOUSE_ID = re.compile("ENSMUS([EGTP])[0-9]{11}", re.IGNORECASE)
-REGEX_ENSEMBL_HUMAN_ID = re.compile("ENS([EGTP])[0-9]{11}", re.IGNORECASE)
-REGEX_MGI_ID = re.compile("MGI:[0-9]{1,}", re.IGNORECASE)
-REGEX_REGION = re.compile("(CHR|)*\s*([0-9]{1,2}|X|Y|MT)\s*(-|:)?\s*(\d+)\s*(MB|M|K|)?\s*(-|:|)?\s*(\d+|)\s*(MB|M|K|)?", re.IGNORECASE)
+REGEX_ENSEMBL_MOUSE_ID = re.compile('ENSMUS([EGTP])[0-9]{11}', re.IGNORECASE)
+REGEX_ENSEMBL_HUMAN_ID = re.compile('ENS([EGTP])[0-9]{11}', re.IGNORECASE)
+REGEX_MGI_ID = re.compile('MGI:[0-9]{1,}', re.IGNORECASE)
+REGEX_REGION = re.compile('(CHR|)*\s*([0-9]{1,2}|X|Y|MT)\s*(-|:)?\s*(\d+)\s*(MB|M|K|)?\s*(-|:|)?\s*(\d+|)\s*(MB|M|K|)?', re.IGNORECASE)
 
 SQL_TERM_EXACT = '''
 SELECT MAX(s.score||'||'||s.description||'||'||l.lookup_value) AS match_description, 
@@ -96,10 +96,8 @@ class Query:
 
     def __str__(self):
         """Return a string representation of this query"""
-        ret_str = ('Query Object: term="{}", "region="{}",'
-                   ' exact="{}", query="{}"').format(self.term, self.region,
-                                                     self.exact, self.query)
-        return ret_str
+        return (f'Query Object: term="{self.term}", "region="{self.region}",'
+                f' exact="{self.exact}", query="{self.query}"')
 
     def get_parameters(self):
         """Get the query parameters.
@@ -121,8 +119,8 @@ class Match:
     def __init__(self, ensembl_gene_id=None, ensembl_version=None,
                  external_ids=None, symbol=None, name=None, synonyms=None,
                  species=None, chromosome=None, position_start=None,
-                 position_end=None, strand=None, match_reason=None,
-                 match_value=None, score=None):
+                 position_end=None, strand=None, homolog_ids=None,
+                 match_reason=None, match_value=None, score=None):
         """Constructor.
 
         Args:
@@ -137,6 +135,7 @@ class Match:
             position_start (int, optional): start location on `chromosome`
             position_end (int, optional): end location on `chromosome`
             strand (str, optional): ``+`` or ``-``
+            homolog_ids (str, optional): homolog gene ids
             match_reason (str, optional): The key the term matched on.
             match_value (str, optional): The value the term matched on.
             score (int, optional): Match score
@@ -155,6 +154,7 @@ class Match:
         self.position_start = position_start
         self.position_end = position_end
         self.strand = strand
+        self.homolog_ids = homolog_ids
         self.match_reason = match_reason
         self.match_value = match_value
         self.score = score
@@ -281,6 +281,16 @@ def execute_query(query, version=None, species=None, limit=None):
                     elem = e.split('/')
                     external_ids.append({'db': elem[0], 'db_id': elem[1]})
             match.external_ids = external_ids
+
+            row_homolog_ids = row['homolog_ids']
+            homolog_ids = []
+            if row_homolog_ids:
+                tmp_homolog_ids = row_homolog_ids.split('||')
+                for h in tmp_homolog_ids:
+                    elem = h.split('/')
+                    homolog_ids.append({'homolog_id': elem[0],
+                                        'homolog_symbol': elem[1]})
+            match.homolog_ids = homolog_ids
 
             row_synonyms = row['synonyms']
             synonyms = []

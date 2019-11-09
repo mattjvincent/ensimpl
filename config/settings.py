@@ -10,12 +10,12 @@ PORT = 8000
 THREADED = True
 
 # to debug or not debug, that is the question
-DEBUG = False
+DEBUG = True
 
 # secret key, probably just leave alone
 SECRET_KEY = 'ENSIMPL-SECRET'
 
 LOG_LEVEL = 'DEBUG' # CRITICAL / ERROR / WARNING / INFO / DEBUG
 #SERVER_NAME = '127.0.0.1:8000'
-#JSONIFY_PRETTYPRINT_REGULAR = False
+JSONIFY_PRETTYPRINT_REGULAR = False
 PREFERRED_URL_SCHEME = ''

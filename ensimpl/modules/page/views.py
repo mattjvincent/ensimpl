@@ -4,16 +4,6 @@ from flask import Blueprint, render_template
 page = Blueprint('page', __name__, template_folder='templates')
 
 
-
-
-
-
-
-
-
-
-
-
 @page.route('/')
 def index():
     """Default page.
@@ -49,8 +39,6 @@ def search():
 def karyotype_js():
     """Get the Karyotype Javascript file.
 
-
-
     Returns:
         :class:`flask.Response`: The response which is the karyotype.js.
 
@@ -69,9 +57,19 @@ def navigator():
     return render_template('page/navigator.html')
 
 
+@page.route("/external_ids")
+def external_ids():
+    """Show the converter page.
+
+    Returns:
+        :class:`flask.Response`: The response object.
+    """
+    return render_template('page/external_ids.html')
+
+
 @page.route("/lookup")
 def lookup():
-    """Show the navigator page.
+    """Show the batch ID lookup page.
 
     Returns:
         :class:`flask.Response`: The response object.

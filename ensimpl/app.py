@@ -8,6 +8,7 @@ from flask import url_for
 import ensimpl.db_config as db_config
 
 #from ensimpl.extensions import debug_toolbar
+from ensimpl.extensions import compress
 from ensimpl.modules.api.views import api
 from ensimpl.modules.page.views import page
 from ensimpl.utils import ReverseProxied
@@ -29,11 +30,13 @@ def create_app(settings_override=None):
 
     if app.config.from_envvar('ENSIMPL_SETTINGS', silent=True):
         env_settings = os.environ['ENSIMPL_SETTINGS']
-        app.logger.info('Using ENSIMPL_SETTINGS: {}'.format(env_settings))
+        app.logger.info(f'Using ENSIMPL_SETTINGS: {env_settings}')
 
     if settings_override:
         app.logger.info('Overriding settings with parameters')
         app.config.update(settings_override)
+
+    app.logger.debug(app.config)
 
     db_config.init()
 
@@ -57,6 +60,8 @@ def extensions(app):
         app (flask.Flask): The Flask application object.
     """
     #debug_toolbar.init_app(app)
+    compress.init_app(app)
+
 
     return None
 

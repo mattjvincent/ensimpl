@@ -17,12 +17,13 @@ test_requirements = []
 on_rtd = os.environ.get('READTHEDOCS', None)
 
 if not on_rtd:
-    requirements.append('Flask==1.0.2')
-    requirements.append('Flask-Cors==3.0.7')
+    requirements.append('Flask==1.1.1')
+    requirements.append('Flask-Cors==3.0.8')
+    requirements.append('Flask-Compress==1.4.0')
     requirements.append('gunicorn==19.9.0')
-    requirements.append('PyMySQL==0.9.2')
-    requirements.append('natsort==5.5.0')
-    requirements.append('tabulate==0.8.2')
+    requirements.append('PyMySQL==0.9.3')
+    requirements.append('natsort==6.0.0')
+    requirements.append('tabulate==0.8.5')
 
 setup(
     name='ensimpl',
@@ -50,7 +51,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.7',
     ]
     #test_suite='tests',
     #tests_require=test_requirements

@@ -7,7 +7,8 @@ import ensimpl.utils as utils
 LOG = utils.get_logger()
 
 
-def get_history(ensembl_id, species, version_start=None, version_end=None, full=False):
+def get_history(ensembl_id, species, version_start=None, version_end=None,
+                full=False):
     """Get a genes history.
 
     Args:
@@ -16,7 +17,7 @@ def get_history(ensembl_id, species, version_start=None, version_end=None, full=
         ids (list): A ``list`` of ``str`` which are Ensembl identifiers.
         full (bool): True to retrieve all information including transcripts,
             exons, proteins.  False will only retrieve the top level gene
-            information.
+            information. Not yet implemented.
 
     Returns:
         list: A ``list`` of ``dicts`` representing genes.

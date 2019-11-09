@@ -199,7 +199,7 @@ def format_time(start, end):
     """
     hours, rem = divmod(end-start, 3600)
     minutes, seconds = divmod(rem, 60)
-    return "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
+    return f'{int(hours):0>2}:{int(minutes):0>2}:{int(seconds):05.2f}'
 
 
 def get_file_name(url, directory=None):
