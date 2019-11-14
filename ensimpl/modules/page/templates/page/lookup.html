@@ -26,16 +26,16 @@
                         <div class="card-header font-weight-bold">ensimpl Input</div>
                         <div class="card-body">
                             <div class="form-group row">
-                                <label for="selectVersion" class="col-4 col-form-label">Species</label>
+                                <label for="selectSpecies" class="col-4 col-form-label">Species</label>
                                 <div class="col-8">
                                     <select class="form-control  form-control-sm" id="selectSpecies">
                                     </select>
                                 </div>
                             </div>
                             <div class="form-group row">
-                                <label for="selectVersion" class="col-4 col-form-label">Version</label>
+                                <label for="selectRelease" class="col-4 col-form-label">Release</label>
                                 <div class="col-8">
-                                    <select class="form-control  form-control-sm" id="selectVersion">
+                                    <select class="form-control  form-control-sm" id="selectRelease">
                                     </select>
                                 </div>
                             </div>
@@ -45,8 +45,13 @@
                                     <textarea id="identifiers" class="form-control form-control-sm" rows="7"></textarea>
                                 </div>
                             </div>
-
-
+                            <div class="row">
+                                <div class="col">
+                                    <div class="float-right small">
+                                        <a href="#" id="exampleData"><i class="fas fa-list"></i> Example Data</a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="card-footer text-muted">
@@ -215,9 +220,7 @@
 {% endblock %}
 
 {% block javascript %}
-<script src="{{ url_for('api.ensimpl_js') }}"></script>
-<script src="{{ url_for('static', filename='js/Blob.js') }}"></script>
-<script src="{{ url_for('static', filename='js/FileSaver.js') }}"></script>
+<script src="{{ url_for('page.ensimpl_js') }}"></script>
 
 
 <script>
@@ -238,7 +241,7 @@
     function findGene() {
         let identifiers = $("#identifiers").val().trim().toUpperCase().split("\n");
         let species = $("#selectSpecies").val();
-        let version = $("#selectVersion").val();
+        let release = $("#selectRelease").val();
 
         $("#searchTable").html('');
 
@@ -247,8 +250,8 @@
         }
 
         let data = {
+            'release': release,
             'species': species,
-            'version': version,
             'ids': identifiers
         };
 
@@ -267,7 +270,7 @@
 
 
         $('#dl').hide();
-        window.IDS = {};
+        window.GENES = {};
 
         $.ajax({
               url: '{{ url_for('api.genes') }}',
@@ -275,7 +278,7 @@
               data: data
           }).done(function (data, textStatus, jqXHR) {
                 console.log('data=', data);
-                window.IDS = data.ids || {};
+                window.GENES = data.genes || {};
                 let numGenes = 0;
 
 
@@ -314,8 +317,8 @@
                     let h2 = '';
                     //console.log(lookup);
                     h2 += '<td>' + lookup + '</td>';
-                        if ((lookup in data.ids) || ($('#include_all').is(':checked'))) {
-                            let elem = data.ids[lookup] || {};
+                        if ((lookup in data.genes) || ($('#include_all').is(':checked'))) {
+                            let elem = data.genes[lookup] || {};
 
                             $.each(selections, function(idx2, elem2) {
 
@@ -377,7 +380,7 @@
                                         let homolog_ids = [];
 
                                         $.each(elem.homolog_ids, function(i, e) {
-                                            homolog_ids.push(e['homolog_id'] + ':' + e['homolog_symbol']);
+                                            homolog_ids.push(e['id'] + ':' + e['symbol']);
                                         });
 
                                         let homologs = homolog_ids.join('<br>');
@@ -401,7 +404,7 @@
                     message = identifiers.length + ' identifiers entered, ';
                 }
 
-                numGenes = Object.keys(window.IDS).length;
+                numGenes = Object.keys(window.GENES).length;
 
                 if (numGenes === 0) {
                     message += 'No matches found';
@@ -453,39 +456,64 @@
         return `${month}_${day}_${year}`
     }
 
+    function grabExampleIDs(source_db, num) {
+        let species = $("#selectSpecies").val();
+        let release = $("#selectRelease").val();
+
+        $.ajax({
+              url: '{{ url_for('api.random_ids') }}',
+              type: 'GET',
+              data: {
+                  source_db: source_db,
+                  limit: num,
+                  release: release,
+                  species: species
+              }
+        }).done(function (data, textStatus, jqXHR) {
+            $('#identifiers').val(data.ids.join('\n'));
+        });
+    }
+
 
 
     $().ready(function () {
         $("#dl").hide();
 
-        window.IDS = null;
+        window.GENES = null;
 
         window.ENSIMPL = new ensimpl();
 
-        window.ENSIMPL.versions(function(data) {
-            window.ENSIMPL_VERSIONS = {};
+        window.ENSIMPL.releases(function(data) {
+            window.ENSIMPL_RELEASES = {};
             let species = {};
 
             $.each(data, function(idx, elem) {
-                console.log(idx, elem);
-                window.ENSIMPL_VERSIONS[elem['version']] = elem;
+                window.ENSIMPL_RELEASES[elem['release']] = elem;
                 species[elem['species']] = elem['species'];
             });
 
-            let vals = Object.values(window.ENSIMPL_VERSIONS);
+            let vals = Object.values(window.ENSIMPL_RELEASES);
             vals.sort().reverse();
 
             $.each(vals, function(key, val) {
-                $("#selectVersion").append('<option value="' + val.version + '">' + val.version + ' - ' + val.assembly_patch + '</option>')
+                $("#selectRelease").append('<option value="' + val.release + '">' + val.release + ' - ' + val.assembly_patch + '</option>')
             });
 
-            $.each(species, function(key, val) {
-                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
-            });
 
-            $('#selectSpecies').val('Mm');
+           $.each(species, function(key, val) {
+               $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+           });
+
+           $('#selectSpecies').val('Mm');
+        });
+
+        $('#exampleData').on('click', function(evt) {
+            evt.preventDefault();
+            grabExampleIDs('Ensembl', 10);
+            return false;
 
         });
+
 
         $('#btnGo').button().on('click', function (evt) {
             evt.preventDefault();
@@ -539,8 +567,8 @@
             let identifiers = $("#identifiers").val().trim().toUpperCase().split("\n");
 
             $.each(identifiers, function(idx, lookup) {
-                if ((lookup in window.IDS) || ($('#include_all').is(':checked'))) {
-                    let elem = window.IDS[lookup] || {};
+                if ((lookup in window.GENES) || ($('#include_all').is(':checked'))) {
+                    let elem = window.GENES[lookup] || {};
 
                     //console.log(elem);
 
@@ -606,7 +634,7 @@
                                 let homolog_ids = [];
 
                                 $.each(elem.homolog_ids, function (i, e) {
-                                    homolog_ids.push(e['homolog_id'] + ':' + e['homolog_symbol']);
+                                    homolog_ids.push(e['id'] + ':' + e['symbol']);
                                 });
 
                                 let homologs = homolog_ids.join('/');

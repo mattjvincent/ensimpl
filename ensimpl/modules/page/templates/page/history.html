@@ -31,16 +31,23 @@
                         <div class="card-header font-weight-bold">ensimpl Input</div>
                         <div class="card-body">
                             <div class="form-group row">
-                                <label for="selectVersion" class="col-4 col-form-label">Species</label>
+                                <label for="selectSpecies" class="col-4 col-form-label">Species</label>
                                 <div class="col-8">
                                     <select class="form-control  form-control-sm" id="selectSpecies">
                                     </select>
                                 </div>
                             </div>
                             <div class="form-group row">
-                                <label for="selectVersion" class="col-4 col-form-label">Version</label>
+                                <label for="selectReleaseStart" class="col-4 col-form-label">Release Start</label>
                                 <div class="col-8">
-                                    <select class="form-control  form-control-sm" id="selectVersion">
+                                    <select class="form-control  form-control-sm" id="selectReleaseStart">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="selectReleaseEnd" class="col-4 col-form-label">Release End</label>
+                                <div class="col-8">
+                                    <select class="form-control  form-control-sm" id="selectReleaseEnd">
                                     </select>
                                 </div>
                             </div>
@@ -90,9 +97,7 @@
 {% endblock %}
 
 {% block javascript %}
-<script src="{{ url_for('api.ensimpl_js', _external=False) }}"></script>
-<script src="{{ url_for('static', filename='js/Blob.js', _external=False) }}"></script>
-<script src="{{ url_for('static', filename='js/FileSaver.js', _external=False) }}"></script>
+<script src="{{ url_for('page.ensimpl_js', _external=False) }}"></script>
 
 
 <script>
@@ -112,7 +117,8 @@
      */
     function findGene() {
         let species = $("#selectSpecies").val();
-        let version = $("#selectVersion").val();
+        let release_start = $("#selectReleaseStart").val();
+        let release_end = $("#selectReleaseEnd").val();
         let identifier = $("#identifier").val().trim();
 
         $("#searchTable").html('');
@@ -122,8 +128,9 @@
         }
 
         let data = {
+            'release_start': release_start,
+            'release_end': release_end,
             'species': species,
-            'version': version,
             'id': identifier
         };
 
@@ -158,7 +165,7 @@
                               <th scope="col">End</th>
                             </tr>
                           </thead><tbody>`;
-                table += `<tr><td>${history_keys[0]}</td><td>${window.ENSIMPL_VERSIONS[history_keys[0]].assembly_patch}</td>`;
+                table += `<tr><td>${history_keys[0]}</td><td>${window.ENSIMPL_RELEASES[history_keys[0]].assembly_patch}</td>`;
 
                 if ('ensembl_version' in prev) {
                     table += `<td>${prev.ensembl_version}</td>`;
@@ -210,10 +217,10 @@
 
                     table += `<tr><td>${history_keys[i]}</td>`;
 
-                    if (window.ENSIMPL_VERSIONS[history_keys[i]].assembly_patch !== window.ENSIMPL_VERSIONS[history_keys[i-1]].assembly_patch) {
-                        table += `<td class="change">${window.ENSIMPL_VERSIONS[history_keys[i]].assembly_patch}</td>`;
+                    if (window.ENSIMPL_RELEASES[history_keys[i]].assembly_patch !== window.ENSIMPL_RELEASES[history_keys[i-1]].assembly_patch) {
+                        table += `<td class="change">${window.ENSIMPL_RELEASES[history_keys[i]].assembly_patch}</td>`;
                     } else {
-                        table += `<td>${window.ENSIMPL_VERSIONS[history_keys[i]].assembly_patch}</td>`;
+                        table += `<td>${window.ENSIMPL_RELEASES[history_keys[i]].assembly_patch}</td>`;
 
                     }
 
@@ -496,25 +503,31 @@
 
         window.ENSIMPL = new ensimpl();
 
-        window.ENSIMPL.versions(function(data) {
-            window.ENSIMPL_VERSIONS = {};
+        window.ENSIMPL.releases(function(data) {
+            window.ENSIMPL_RELEASES = {};
             let species = {};
 
             $.each(data, function(idx, elem) {
-                window.ENSIMPL_VERSIONS[elem['version']] = elem;
+                window.ENSIMPL_RELEASES[elem['release']] = elem;
                 species[elem['species']] = elem['species'];
             });
 
-            let vals = Object.values(window.ENSIMPL_VERSIONS);
+            let vals = Object.values(window.ENSIMPL_RELEASES);
+
+            $.each(vals, function(key, val) {
+                $("#selectReleaseStart").append('<option value="' + val.release + '">' + val.release + ' - ' + val.assembly_patch + '</option>')
+            });
+
             vals.sort().reverse();
 
             $.each(vals, function(key, val) {
-                $("#selectVersion").append('<option value="' + val.version + '">' + val.version + ' - ' + val.assembly_patch + '</option>')
+                $("#selectReleaseEnd").append('<option value="' + val.release + '">' + val.release + ' - ' + val.assembly_patch + '</option>')
             });
 
-            $.each(species, function(key, val) {
-                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
-            });
+
+           $.each(species, function(key, val) {
+               $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+           });
 
             $('#selectSpecies').val('Mm');
 

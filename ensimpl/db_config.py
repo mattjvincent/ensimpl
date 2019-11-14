@@ -14,32 +14,28 @@ ENSIMPL_DBS_DICT = None
 '''`dict` of all the databases.'''
 
 
-def get_ensimpl_db(version, species):
+def get_ensimpl_db(release, species):
     """Get the database based upon the `version` and `species` values which
-    should represent the Ensembl reference number and species identifier.
+    should represent the Ensembl version and species identifier.
 
     Args:
-        version (int): The Ensembl version number.
+        release (str): The Ensembl version.
         species (str): The short identifier of a species.
 
     Returns:
         str: The database file.
 
     Raises:
-        ValueError: If unable to find the `version` and `species` combination
-            or if `version` is not a number.
+        ValueError: If unable to find the `version` and `species` combination.
 
     Examples:
             >>> get_ensimpl_db(91, 'Mm')
             'ensimpl.91.Mm.db3'
     """
     try:
-        return ENSIMPL_DBS_DICT[f'{int(version)}:{species}']
+        return ENSIMPL_DBS_DICT[f'{release}:{species}']
     except KeyError as ke:
-        error = f'Unable to find version "{version}" and species "{species}"'
-        raise ValueError(error)
-    except ValueError as ve:
-        error = f'Version "{version}" does not appear to be a numeric value'
+        error = f'Unable to find release "{release}" and species "{species}"'
         raise ValueError(error)
 
 
@@ -59,19 +55,19 @@ def get_all_ensimpl_dbs(directory):
         # db should be a string consisting of the following elements:
         # 'ensimpl', version, species, 'db3'
         val = {
-            'version': int(db.split('.')[1]),
+            'release': int(db.split('.')[1]),
             'species': db.split('.')[2],
             'db': db
         }
         db_list.append(val)
 
-        # combined key will be 'version:species'
-        combined_key = f'{val["version"]}:{val["species"]}'
+        # combined key will be 'release:species'
+        combined_key = f'{val["release"]}:{val["species"]}'
         db_dict[combined_key] = val
 
     # sort the databases in descending order by version and than species for
     # readability in the API
-    all_sorted_dbs = multikeysort(db_list, ['-version', 'species'])
+    all_sorted_dbs = multikeysort(db_list, ['-release', 'species'])
 
     global ENSIMPL_DBS
     ENSIMPL_DBS = all_sorted_dbs
@@ -86,8 +82,8 @@ def init(directory=None):
 
     Args:
         directory (str, optional): A directory that specifies where the ensimpl
-            databases live. If None the environment variable ``ENSIMPL_DIR`` will
-            be used.
+            databases live. If None the environment variable ``ENSIMPL_DIR``
+            will be used.
     """
     ensimpl_dir = os.environ.get('ENSIMPL_DIR', None)
 

@@ -42,6 +42,13 @@
             integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
             crossorigin="anonymous"></script>
 
+    <script src="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+    <script src="//cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/Blob.js', _external=False) }}"></script>
+    <script src="{{ url_for('static', filename='js/FileSaver.js', _external=False) }}"></script>
+
+
     {%-block javascript %}{% endblock -%}
 
     </body>

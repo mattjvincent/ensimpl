@@ -45,24 +45,24 @@ class Region:
                 f'{self.start_position}-{self.end_position})')
 
 
-def connect_to_database(species=None, version=None):
+def connect_to_database(release=None, species=None):
     """Connect to the Ensimpl database.
 
     Args:
+        release (str): The Ensembl release, None defaults to latest.
         species (str): The Ensembl species identifier, None defaults to 'Mm'.
-        version (int): The Ensembl version number, None defaults to latest.
 
     Returns:
         a connection to the database
     """
     try:
-        if species is None:
-            species = 'Mm'
+        species = 'Mm' if species is None else species
 
-        if version is None:
-            version = max(db['version'] for db in db_config.ENSIMPL_DBS)
+        if release is None:
+            release = max(db['release'] for db in db_config.ENSIMPL_DBS)
 
-        database = db_config.get_ensimpl_db(version, species)['db']
+        database = db_config.get_ensimpl_db(release, species)['db']
+
         return sqlite3.connect(database)
     except Exception as e:
         LOG.error(f'Error connecting to database: {e}')

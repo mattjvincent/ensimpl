@@ -449,7 +449,7 @@ def finalize(db, ref):
     sql_meta_insert = 'INSERT INTO meta_info VALUES (null, ?, ?, ?)'
 
     meta_data = []
-    meta_data.append(('version', ref.version, ref.species_id))
+    meta_data.append(('release', ref.release, ref.species_id))
     meta_data.append(('assembly', ref.assembly, ref.species_id))
     meta_data.append(('assembly_patch', ref.assembly_patch, ref.species_id))
     meta_data.append(('url', ref.url, ref.species_id))

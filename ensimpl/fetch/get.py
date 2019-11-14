@@ -8,12 +8,12 @@ import ensimpl.fetch.utils as fetch_utils
 LOG = utils.get_logger()
 
 
-def chromosomes(species_id=None, version=None):
+def chromosomes(release=None, species=None):
     """Get the chromosomes.
 
     Args:
-        species_id (str): The Ensembl species identifier.
-        version (int): The Ensembl version.
+        release (str): The Ensembl release or None for latest.
+        species (str): The Ensembl species identifier.
 
     Returns:
         list: A ``list`` of ``dicts`` with the following keys:
@@ -24,7 +24,7 @@ def chromosomes(species_id=None, version=None):
     """
     sql_statement = 'SELECT * FROM chromosomes ORDER BY chromosome_num '
 
-    conn = fetch_utils.connect_to_database(species_id, version)
+    conn = fetch_utils.connect_to_database(release, species)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -40,12 +40,12 @@ def chromosomes(species_id=None, version=None):
     return chroms
 
 
-def karyotypes(species_id=None, version=None):
+def karyotypes(release=None, species=None):
     """Get the karyotypes.
 
     Args:
-        species_id (str): the species identifier
-        version (int): Ensembl version or None for latest
+        release (str): The Ensembl release or None for latest.
+        species (str): The Ensembl species identifier.
 
     Returns:
         list: A ``list`` element with a ``dict`` with the following keys:
@@ -65,7 +65,7 @@ def karyotypes(species_id=None, version=None):
         ORDER BY c.chromosome_num, k.seq_region_start
     '''
 
-    conn = fetch_utils.connect_to_database(species_id, version)
+    conn = fetch_utils.connect_to_database(release, species)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -78,10 +78,12 @@ def karyotypes(species_id=None, version=None):
                                          'order': row['chromosome_num'],
                                          'karyotypes': []})
 
-        chrom_data['karyotypes'].append({'seq_region_start': row['seq_region_start'],
-                                         'seq_region_end': row['seq_region_end'],
-                                         'band': row['band'],
-                                         'stain': row['stain']})
+        chrom_data['karyotypes'].append(
+            {'seq_region_start': row['seq_region_start'],
+             'seq_region_end': row['seq_region_end'],
+             'band': row['band'],
+             'stain': row['stain']}
+        )
 
         karyotype_data[row['chromosome']] = chrom_data
 
@@ -89,19 +91,20 @@ def karyotypes(species_id=None, version=None):
     return list(karyotype_data.values())
 
 
-def meta(species_id=None, version=None):
+def db_meta(release=None, species=None):
     """Get the database meta information..
 
     Args:
-        species_id (str): Ensembl species identifier.
-        version (int): Ensembl version or None for latest.
+        release (str): The Ensembl release or None for latest.
+        species (str): The Ensembl species identifier.
 
     Returns:
         dict: A ``dict`` with the following keys:
             * assembly
             * assembly_patch
             * species
-            * version
+            * release
+            * url (if available)
     """
     sql_meta = '''
         SELECT distinct meta_key meta_key, meta_value, species_id
@@ -109,7 +112,7 @@ def meta(species_id=None, version=None):
          ORDER BY meta_key
     '''
 
-    conn = fetch_utils.connect_to_database(species_id, version)
+    conn = fetch_utils.connect_to_database(release, species)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -118,7 +121,7 @@ def meta(species_id=None, version=None):
     for row in cursor.execute(sql_meta):
         meta_data['species'] = row['species_id']
 
-        for val in ['version', 'assembly', 'assembly_patch', 'url']:
+        for val in ['release', 'assembly', 'assembly_patch', 'url']:
             if row['meta_key'] == val:
                 meta_data[val] = row['meta_value']
 
@@ -127,12 +130,12 @@ def meta(species_id=None, version=None):
     return meta_data
 
 
-def info(species_id=None, version=None):
+def stats(release=None, species=None):
     """Get information for the version.
 
     Args:
-        species_id (str): the species identifier
-        version (int): Ensembl version or None for latest
+        release (str): The Ensembl release or None for latest.
+        species (str): The Ensembl species identifier.
 
     Returns:
         dict: A ``dict`` with the following keys:
@@ -142,8 +145,6 @@ def info(species_id=None, version=None):
             * stats - informational counts about the database
             * version
     """
-    stats = meta(species_id, version)
-
     sql_lookup_stats = '''
         SELECT count(egl.lookup_value) num, sr.description 
           FROM ensembl_genes_lookup egl, search_ranking sr
@@ -152,14 +153,14 @@ def info(species_id=None, version=None):
          ORDER BY sr.score desc
     '''
 
-    conn = fetch_utils.connect_to_database(species_id, version)
+    conn = fetch_utils.connect_to_database(release, species)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    stats['stats'] = {}
+    stats = {}
 
     for row in cursor.execute(sql_lookup_stats):
-        stats['stats'][row['description']] = row['num']
+        stats[row['description']] = row['num']
 
     cursor.close()
     conn.close()
@@ -167,12 +168,12 @@ def info(species_id=None, version=None):
     return stats
 
 
-def external_dbs(species_id=None, version=None):
-    """Get the chromosomes.
+def external_dbs(release=None, species=None):
+    """Get the external databases.
 
     Args:
-        species_id (str): The Ensembl species identifier.
-        version (int): The Ensembl version.
+        release (str): The Ensembl release or None for latest.
+        species (str): The Ensembl species identifier.
 
     Returns:
         list: A ``list`` of ``dicts`` with the following keys:
@@ -183,13 +184,13 @@ def external_dbs(species_id=None, version=None):
     """
     sql_statement = 'SELECT * FROM external_dbs ORDER BY external_db_key '
 
-    conn = fetch_utils.connect_to_database(species_id, version)
+    conn = fetch_utils.connect_to_database(release, species)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     ext_dbs = []
 
-    species_id = fetch_utils.nvl(species_id, 'Mm')
+    species_id = fetch_utils.nvl(species, 'Mm')
 
     for row in cursor.execute(sql_statement):
 
@@ -205,4 +206,3 @@ def external_dbs(species_id=None, version=None):
         })
 
     return ext_dbs
-

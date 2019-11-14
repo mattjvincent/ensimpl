@@ -11,7 +11,7 @@ import ensimpl.create.ensimpl_db as ensimpl_db
 
 DEFAULT_CONFIG = 'ftp://ftp.jax.org/churchill-lab/ensimpl/ensimpl.ensembl.conf'
 
-ENSEMBL_FIELDS = ['version', 'release_date', 'assembly', 'assembly_patch',
+ENSEMBL_FIELDS = ['release', 'release_date', 'assembly', 'assembly_patch',
                   'species_id', 'species_name', 'url', 'db', 'compara_db',
                   'server', 'port', 'user_id', 'password']
 
@@ -27,7 +27,7 @@ def parse_config(resource_name):
         resource_name (str): String identifying the resource.
 
     Returns:
-        dict: A ``dict`` with keys being the Ensembl version and values
+        dict: A ``dict`` with keys being the Ensembl release and values
             of :obj:`EnsemblReference`.
     """
     start = time.time()
@@ -49,9 +49,9 @@ def parse_config(resource_name):
                 if len(elems) == 12:
                     elems.append(None)
                 reference = EnsemblReference(*elems)
-                release = all_releases.get(reference.version, {})
+                release = all_releases.get(reference.release, {})
                 release[reference.species_id] = reference
-                all_releases[reference.version] = release
+                all_releases[reference.release] = release
 
         LOG.info(f'Config parsed in {utils.format_time(start, time.time())}')
     except IOError as io_error:
@@ -71,19 +71,19 @@ def parse_config(resource_name):
 def create(ensembl, species, directory, resource):
     """Create Ensimpl database(s).  Output database name will be:
 
-    "ensembl. ``version`` . ``species`` .db3"
+    "ensembl. ``release`` . ``species`` .db3"
 
     Args:
-        ensembl (list): A ``list`` of all Ensembl versions to create, ``None``
+        ensembl (list): A ``list`` of all Ensembl releases to create, ``None``
             for all.
         species (list): A ``list`` of all species to create, ``None`` for all.
         directory (str): Output directory.
         resource (str): Configuration file location to parse.
     """
     if ensembl:
-        LOG.debug('Ensembl Versions: {}'.format(','.join(ensembl)))
+        LOG.debug('Ensembl Releases: {}'.format(','.join(ensembl)))
     else:
-        LOG.debug('Ensembl Versions: ALL')
+        LOG.debug('Ensembl Releases: ALL')
 
     LOG.debug(f'Directory: {directory}')
     LOG.debug(f'Resource: {resource}')
@@ -107,7 +107,7 @@ def create(ensembl, species, directory, resource):
                       f'{", ".join(not_found)}')
             LOG.error(f'Please make sure that the resource "{resource}" is '
                       'accessible and in the correct format')
-            LOG.error(f'Found Ensembl versions: {", ".join(all_releases)}')
+            LOG.error(f'Found Ensembl releases: {", ".join(all_releases)}')
             raise Exception('Unable to create databases')
 
     for release_ver, release_val in sorted(releases.items()):
@@ -116,8 +116,8 @@ def create(ensembl, species, directory, resource):
 
         for species_id, ensembl_ref in sorted(release_val.items()):
             if not species or (species_id in species):
-                LOG.warning('Generating ensimpl database for Ensembl version '
-                            f'version: {release_ver}')
+                LOG.warning('Generating ensimpl database for Ensembl '
+                            f'release: {release_ver}')
 
                 ensimpl_file = f'ensimpl.{release_ver}.{species_id}.db3'
 

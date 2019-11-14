@@ -5,10 +5,13 @@ from flask import Flask
 from flask import render_template
 from flask import url_for
 
+
+
 import ensimpl.db_config as db_config
 
 #from ensimpl.extensions import debug_toolbar
-from ensimpl.extensions import compress
+#from ensimpl.extensions import Swagger
+from ensimpl.extensions import compress, Swagger
 from ensimpl.modules.api.views import api
 from ensimpl.modules.page.views import page
 from ensimpl.utils import ReverseProxied
@@ -61,6 +64,8 @@ def extensions(app):
     """
     #debug_toolbar.init_app(app)
     compress.init_app(app)
+    #Swagger(app)
+
 
 
     return None

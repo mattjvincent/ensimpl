@@ -11,12 +11,12 @@
     
             // Define option defaults
             this.defaults = {
-                versions_url: "{{url_for('api.versions', _external=True)}}",
+                releases_url: "{{url_for('api.releases', _external=True)}}",
+                search_url: "{{url_for('api.search', _external=True)}}",
                 search_exact: false,
                 search_limit: 1000,
                 search_species: null,
-                search_url: "{{url_for('api.search', _external=True)}}",
-                search_version: null
+                search_release: null
             };
     
             let $ = window.$ || window.JQuery;
@@ -41,21 +41,20 @@
           this.settings = $.extend({}, this.defaults, settings);
       };
     
-      ensimpl.prototype.versions = function(callback) {
+      ensimpl.prototype.releases = function(callback) {
           var _ = this;
           var $ = window.$ || window.JQuery;
           _.response = null;
     
           $.ajax({
-              url: _.settings.versions_url,
+              url: _.settings.releases_url,
               dataType: 'jsonp',
-              jsonp: 'callback',
-              data: {'expand': 1}
+              jsonp: 'callback'
           }).done(function (data, textStatus, jqXHR) {
               _.response = data;
     
               if (callback) {
-                  callback(data['versions']);
+                  callback(data['releases']);
               }
           }).fail(function (jqXHR, textStatus, errorThrown) {
               console.error('Ensimpl fail');
@@ -75,7 +74,7 @@
               species: _.settings.search_species,
               limit: _.settings.search_limit,
               exact: _.settings.search_exact,
-              version: _.settings.search_version
+              release: _.settings.search_release
           };
     
           if (options && typeof options === 'object') {

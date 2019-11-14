@@ -43,16 +43,16 @@
                 <div class="card-header font-weight-bold">ensimpl Input</div>
                 <div class="card-body">
                     <div class="form-group row">
-                        <label for="selectVersion" class="col-4 col-form-label">Species</label>
+                        <label for="selectSpecies" class="col-4 col-form-label">Species</label>
                         <div class="col-8">
                             <select class="form-control  form-control-sm" id="selectSpecies">
                             </select>
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="selectVersion" class="col-4 col-form-label">Version</label>
+                        <label for="selectRelease" class="col-4 col-form-label">Release</label>
                         <div class="col-8">
-                            <select class="form-control  form-control-sm" id="selectVersion">
+                            <select class="form-control  form-control-sm" id="selectRelease">
                             </select>
                         </div>
 
@@ -176,9 +176,7 @@
 {% block javascript %}
 
 <script src="{{ url_for('static', filename='js/d3.v3.js', _external=False) }}"></script>
-<script src="{{ url_for('static', filename='js/Blob.js', _external=False) }}"></script>
-<script src="{{ url_for('static', filename='js/FileSaver.js', _external=False) }}"></script>
-<script src="{{ url_for('api.ensimpl_js', _external=False) }}"></script>
+<script src="{{ url_for('page.ensimpl_js', _external=False) }}"></script>
 <script src="{{ url_for('page.karyotype_js', _external=False) }}"></script>
 
 <script>
@@ -188,7 +186,7 @@
      */
     function findGene() {
         let searchVal = $("#searchTerm").val().trim().toUpperCase();
-        let version = $("#selectVersion").val();
+        let release = $("#selectRelease").val();
         let species = $("#selectSpecies").val();
 
         $("#tblBody").html('');
@@ -197,12 +195,9 @@
             return;
         }
 
-        let options = {species: species,
+        let options = {release: release,
+                       species: species,
                        limit: 100};
-
-        if (version !== "") {
-            options['version'] = version;
-        }
 
         let selectionsTemp = $('[id^="column_"]');
         let selections = [];
@@ -561,32 +556,31 @@
 
         window.ENSIMPL = new ensimpl();
 
-        window.ENSIMPL.versions(function(data) {
-            window.ENSIMPL_VERSIONS = {};
+        window.ENSIMPL.releases(function(data) {
+            window.ENSIMPL_RELEASES = {};
             let species = {};
 
             $.each(data, function(idx, elem) {
-                window.ENSIMPL_VERSIONS[elem['version']] = elem;
+                window.ENSIMPL_RELEASES[elem['release']] = elem;
                 species[elem['species']] = elem['species'];
             });
 
-            let vals = Object.values(window.ENSIMPL_VERSIONS);
+            let vals = Object.values(window.ENSIMPL_RELEASES);
             vals.sort().reverse();
 
             $.each(vals, function(key, val) {
-                $("#selectVersion").append('<option value="' + val.version + '">' + val.version + ' - ' + val.assembly_patch + '</option>')
+                $("#selectRelease").append('<option value="' + val.release + '">' + val.release + ' - ' + val.assembly_patch + '</option>')
             });
 
 
-           $.each(species, function(key, val) {
-               $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
-           });
+            $.each(species, function(key, val) {
+                $("#selectSpecies").append('<option value="' + key + '">' + val + '</option>')
+            });
 
             $('#selectSpecies').val('Mm');
 
-        let selectedVersion = $("#selectVersion").val();
-        let selectedSpecies = $("#selectSpecies").val();
-
+            let selectedRelease = $("#selectRelease").val();
+            let selectedSpecies = $("#selectSpecies").val();
 
             window.KARYOTYPE = new karyotype({'width': $('#chromosomeKaryotype').width() - 100,
                                               'height': $('#chromosomeKaryotype').width() / 3,
@@ -596,7 +590,7 @@
                                               'showPositionOnHover': false,
                                               'onSelection':onSelected,
                                               //'onSelecting':onSelecting,
-                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + selectedSpecies + "&version=" + selectedVersion
+                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + selectedSpecies + "&release=" + selectedRelease
             });
         });
 
@@ -615,12 +609,12 @@
             return false;
         });
 
-        $("#selectVersion").on("change", function (evt) {
-                    $("#dl").hide();
+        $("#selectRelease").on("change", function (evt) {
+            $("#dl").hide();
 
-           let version = $("#selectVersion").val();
-           let species = $("#selectSpecies").val();
-           $("#chromosomeKaryotype").html("");
+            let release = $("#selectRelease").val();
+            let species = $("#selectSpecies").val();
+            $("#chromosomeKaryotype").html("");
             window.KARYOTYPE = new karyotype({'width': $('#chromosomeKaryotype').width() - 100,
                                               'height': $('#chromosomeKaryotype').width() / 3,
                                               'id':'chromosomeKaryotype',
@@ -629,17 +623,17 @@
                                               'showPositionOnHover': false,
                                               'onSelection':onSelected,
                                               //'onSelecting':onSelecting,
-                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + species + "&version=" + version})
+                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + species + "&release=" + release})
 
         });
 
 
         $("#selectSpecies").on("change", function (evt) {
-                    $("#dl").hide();
+            $("#dl").hide();
 
-           let version = $("#selectVersion").val();
-           let species = $("#selectSpecies").val();
-           $("#chromosomeKaryotype").html("");
+            let release = $("#selectRelease").val();
+            let species = $("#selectSpecies").val();
+            $("#chromosomeKaryotype").html("");
             window.KARYOTYPE = new karyotype({'width': $('#chromosomeKaryotype').width() - 100,
                                               'height': $('#chromosomeKaryotype').width() / 3,
                                               'id':'chromosomeKaryotype',
@@ -648,7 +642,7 @@
                                               'showPositionOnHover': false,
                                               'onSelection':onSelected,
                                               //'onSelecting':onSelecting,
-                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + species + "&version=" + version})
+                                              'url':"{{ url_for('api.karyotypes', _external=False) }}?species=" + species + "&release=" + release})
 
         });
 

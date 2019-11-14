@@ -406,48 +406,49 @@ SQL_ENSEMBL_COMPARA_SELECT_HOMOLOGS_HS_ORDER_BY = '''
    ORDER BY hs_id, mm_id
 '''
 
-def _get_sql_select_gene(version):
-    """Retrieve the proper SQL statement based upon the Ensembl `version`.
+
+def _get_sql_select_gene(release):
+    """Retrieve the proper SQL statement based upon the Ensembl `release`.
 
     Args:
-        version (int): Ensembl version.
+        release (int): Ensembl release.
 
     Returns:
         str: The SQL statement.
     """
-    if int(version) < 65:
+    if int(release) < 65:
         return SQL_ENSEMBL_48_SELECT_GENE + SQL_ENSEMBL_48_SELECT_GENE_ORDER_BY
     else:
         return SQL_ENSEMBL_65_SELECT_GENE + SQL_ENSEMBL_65_SELECT_GENE_ORDER_BY
 
 
-def _get_sql_select_gtpe(version):
-    """Retrieve the proper SQL statement based upon the Ensembl `version`.
+def _get_sql_select_gtpe(release):
+    """Retrieve the proper SQL statement based upon the Ensembl `release`.
 
     Args:
-        version (int): Ensembl version.
+        release (int): Ensembl release.
 
     Returns:
         str: The SQL statement.
     """
-    if int(version) < 65:
+    if int(release) < 65:
         return SQL_ENSEMBL_48_SELECT_GTPE + SQL_ENSEMBL_48_SELECT_GTPE_ORDER_BY
     else:
         return SQL_ENSEMBL_65_SELECT_GTPE + SQL_ENSEMBL_65_SELECT_GTPE_ORDER_BY
 
 
-def _get_sql_select_gene_homologs(version):
-    """Retrieve the proper SQL statement based upon the Ensembl `version`.
+def _get_sql_select_gene_homologs(release):
+    """Retrieve the proper SQL statement based upon the Ensembl `release`.
 
     Args:
-        version (int): Ensembl version.
+        release (int): Ensembl release.
 
     Returns:
         str: The SQL statement.
     """
-    if int(version) <= 75:
+    if int(release) <= 75:
         return SQL_ENSEMBL_COMPARA_75_SELECT_HOMOLOGS
-    elif int(version) <= 85:
+    elif int(release) <= 85:
         return SQL_ENSEMBL_COMPARA_76_85_SELECT_HOMOLOGS
     else:
         return SQL_ENSEMBL_COMPARA_86_SELECT_HOMOLOGS
@@ -600,7 +601,7 @@ def extract_ensembl_genes(ref):
 
     try:
         conn = connect_to_database(ref)
-        sql = _get_sql_select_gene(ref.version)
+        sql = _get_sql_select_gene(ref.release)
 
         LOG.debug('Extracting genes...')
         with conn.cursor() as cursor:
@@ -649,7 +650,7 @@ def extract_ensembl_gtpe(ref):
 
     try:
         conn = connect_to_database(ref)
-        sql = _get_sql_select_gtpe(ref.version)
+        sql = _get_sql_select_gtpe(ref.release)
 
         LOG.debug('Extracting transcript, protein, exon information ...')
         with conn.cursor() as cursor:
@@ -688,7 +689,7 @@ def extract_ensembl_homologs(ref):
 
     try:
         conn = connect_to_database(ref, ref.compara_db)
-        sql = _get_sql_select_gene_homologs(ref.version)
+        sql = _get_sql_select_gene_homologs(ref.release)
 
         if ref.species_id.lower() == 'hs':
             e_id = 'hs_id'

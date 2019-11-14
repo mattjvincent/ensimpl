@@ -234,12 +234,12 @@ def get_query(term, exact=True):
     return query
 
 
-def execute_query(query, version=None, species=None, limit=None):
+def execute_query(query, release=None, species=None, limit=None):
     """Execute the SQL query.
 
     Args:
         query (:obj:`Query`): the query
-        version (int): The Ensembl version.
+        release (str): The Ensembl release or ``None`` for latest.
         species (str): The Ensembl species identifier.
         limit (int, optional): Maximum number to return, ``None`` for all.
 
@@ -256,7 +256,7 @@ def execute_query(query, version=None, species=None, limit=None):
     ilimit = fetch_utils.nvli(limit, -1)
 
     try:
-        conn = fetch_utils.connect_to_database(species, version)
+        conn = fetch_utils.connect_to_database(release, species)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -335,22 +335,21 @@ def execute_query(query, version=None, species=None, limit=None):
     return Result(query, matches, num_matches)
 
 
-def search(term, version=None, species=None, exact=True, limit=None):
+def search(term, release=None, species=None, exact=True, limit=None):
     """Perform the search.
 
     Args:
         term (str): The search term.
-        version (int): The Ensembl version.
+        release (str): The Ensembl release.
         species (str): The Ensembl species identifier.
         exact (bool, optional): ``True`` for exact match of `term`.
         limit (int, optional): Maximum number to return, ``None`` for all.
-        current (bool, optional): Also get current information
 
     Returns:
         :obj:`Result`: The result of the query.
     """
     LOG.debug('term={}'.format(term))
-    LOG.debug('version={}'.format(version))
+    LOG.debug('release={}'.format(release))
     LOG.debug('species={}'.format(species))
     LOG.debug('exact={}'.format(exact))
     LOG.debug('limit={}'.format(limit))
@@ -360,7 +359,7 @@ def search(term, version=None, species=None, exact=True, limit=None):
 
         LOG.debug('QUERY={}'.format(query))
 
-        result = execute_query(query, version, species, limit)
+        result = execute_query(query, release, species, limit)
 
         LOG.debug('# matches: {}'.format(len(result.matches)))
 
@@ -369,34 +368,3 @@ def search(term, version=None, species=None, exact=True, limit=None):
         LOG.error('Error: {}'.format(se))
         return None
 
-
-def search_detail(term, version=None, species=None, exact=True, limit=None):
-    """Perform the search.
-
-    Args:
-        term (str): The search term.
-        version (int): The Ensembl version.
-        species (str): The Ensembl species identifier.
-        exact (bool, optional): ``True`` for exact match of `term`.
-        limit (int, optional): Maximum number to return, ``None`` for all.
-
-    Returns:
-        :obj:`Result`: The result of the query.
-    """
-    LOG.debug('term={}'.format(term))
-    LOG.debug('version={}'.format(version))
-    LOG.debug('species={}'.format(species))
-    LOG.debug('exact={}'.format(exact))
-    LOG.debug('limit={}'.format(limit))
-
-    try:
-        results_requested = search(term, version, species, exact, limit)
-        results_current = search(term, None, species, exact, limit)
-
-        # merge the results
-
-
-
-    except SearchException as se:
-        LOG.error('Error: {}'.format(se))
-        return None

@@ -97,8 +97,15 @@ def help():
     return render_template('page/help.html')
 
 
+@page.route("/js/ensimpl.js")
+def ensimpl_js():
+    """Get the Ensimpl Javascript file.
 
-
+    Returns:
+        :class:`flask.Response`: The response which is the Javascript file.
+    """
+    headers = {'Content-Type': 'application/javascript'}
+    return render_template('page/ensimpl.js'), 200, headers
 
 
 

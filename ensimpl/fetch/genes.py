@@ -1,6 +1,5 @@
 # -*- coding: utf_8 -*-
 import sqlite3
-import time
 
 from collections import OrderedDict
 
@@ -210,12 +209,39 @@ SELECT all_ids.ensembl_id,
  ORDER BY all_ids.ensembl_id, all_ids.external_db, all_ids.external_id
 '''
 
+SQL_IDS_RANDOM = '''
+SELECT r.*
+  FROM (SELECT external_id random_id, external_db source_db
+          FROM ensembl_gene_ids 
+         UNION
+        SELECT ensembl_id, 'Ensembl' 
+          FROM ensembl_genes 
+        ) r
+WHERE r.source_db = :source_db       
+ORDER BY RANDOM() 
+LIMIT :limit
+'''
 
-def get_ids(ids=None, species=None, version=None, source_db='Ensembl'):
+
+def get_ids(ids=None, release=None, species=None, source_db='Ensembl'):
+    """Get all ids for identifiers.
+
+    Args:
+        ids (list): A ``list`` of ``str`` which are Ensembl identifiers.
+        release (str): The Ensembl release.
+        species (str): The Ensembl species identifier.
+        source_db (str): A valid source_db.
+
+    Returns:
+        list: A ``list`` of ``dicts`` representing identifiers.
+
+    Raises:
+        Exception: When sqlite error or other error occurs.
+    """
     results = OrderedDict()
 
     valid_db_ids = ['Ensembl', 'Ensembl_homolog']
-    external_dbs = fetch_get.external_dbs(species, version)
+    external_dbs = fetch_get.external_dbs(release, species)
 
     for db in external_dbs:
         valid_db_ids.append(db['external_db_id'])
@@ -224,7 +250,7 @@ def get_ids(ids=None, species=None, version=None, source_db='Ensembl'):
         raise ValueError(f'Valid source dbs are: {",".join(valid_db_ids)}')
 
     try:
-        conn = fetch_utils.connect_to_database(species, version)
+        conn = fetch_utils.connect_to_database(release, species)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -232,28 +258,25 @@ def get_ids(ids=None, species=None, version=None, source_db='Ensembl'):
         # build the query
         #
 
-        SQL_QUERY = None
+        sql_query = SQL_IDS_ALL
 
         if ids:
             in_values = '","'.join(ids)
             in_values = f'"{in_values}"'
 
             if source_db and source_db.lower() == 'ensembl':
-                SQL_QUERY = SQL_IDS_FILTERED_ENSEMBL
-                SQL_QUERY = SQL_QUERY.format(in_values)
+                sql_query = SQL_IDS_FILTERED_ENSEMBL
+                sql_query = sql_query.format(in_values)
             else:
-                SQL_QUERY = SQL_IDS_FILTERED
-                SQL_QUERY = SQL_QUERY.format(in_values, source_db)
-
-        else:
-            SQL_QUERY = SQL_IDS_ALL
+                sql_query = SQL_IDS_FILTERED
+                sql_query = sql_query.format(in_values, source_db)
 
 
         #
         # execute the query
         #
 
-        for row in cursor.execute(SQL_QUERY, {}):
+        for row in cursor.execute(sql_query, {}):
 
             match_id = row['match_id']
 
@@ -273,11 +296,24 @@ def get_ids(ids=None, species=None, version=None, source_db='Ensembl'):
     return results
 
 
-def get_homology(ids=None, species=None, version=None):
+def get_homology(ids=None, release=None, species=None):
+    """Get homology information.
+
+    Args:
+        ids (list): A ``list`` of ``str`` which are Ensembl identifiers.
+        release (str): The Ensembl release.
+        species (str): The Ensembl species identifier.
+
+    Returns:
+        list: A ``list`` of ``dicts`` representing homology data.
+
+    Raises:
+        Exception: When sqlite error or other error occurs.
+    """
     results = OrderedDict()
 
     try:
-        conn = fetch_utils.connect_to_database(species, version)
+        conn = fetch_utils.connect_to_database(release, species)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -285,25 +321,22 @@ def get_homology(ids=None, species=None, version=None):
         # build the query
         #
 
-        SQL_QUERY = None
+        sql_query = SQL_HOMOLOGY
 
         if ids:
-            SQL_QUERY = SQL_HOMOLOGY_FILTERED
+            sql_query = SQL_HOMOLOGY_FILTERED
 
             in_values = '","'.join(ids)
             in_values = f'"{in_values}"'
 
             # create a temp table and insert into
-            SQL_QUERY = SQL_QUERY.format(in_values)
-        else:
-            SQL_QUERY = SQL_HOMOLOGY
-
+            sql_query = sql_query.format(in_values)
 
         #
         # execute the query
         #
 
-        for row in cursor.execute(SQL_QUERY, {}):
+        for row in cursor.execute(sql_query, {}):
             gene_id = row['ensembl_id']
 
             gene = results.get(gene_id)
@@ -321,7 +354,7 @@ def get_homology(ids=None, species=None, version=None):
     return results
 
 
-def get(ids=None, species=None, version=None, order='id', details=False):
+def get(ids=None, release=None, species=None, order='id', details=False):
     """Get genes matching the ids.
 
         Each match object will contain:
@@ -362,7 +395,7 @@ def get(ids=None, species=None, version=None, order='id', details=False):
 
     Args:
         ids (list): A ``list`` of ``str`` which are Ensembl identifiers.
-        version (int): The Ensembl version number.
+        release (str): The Ensembl release or None for latest.
         species (str): The Ensembl species identifier.
         order (str): Order by 'id' or 'position'.
         details (bool): True to retrieve all information including transcripts,
@@ -378,7 +411,7 @@ def get(ids=None, species=None, version=None, order='id', details=False):
     results = OrderedDict()
 
     try:
-        conn = fetch_utils.connect_to_database(species, version)
+        conn = fetch_utils.connect_to_database(release, species)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -386,46 +419,46 @@ def get(ids=None, species=None, version=None, order='id', details=False):
         # build the query
         #
 
-        SQL_QUERY = None
+        sql_query = None
 
         if ids:
             if details:
-                SQL_QUERY = SQL_GENES_FULL_FILTERED
+                sql_query = SQL_GENES_FULL_FILTERED
             else:
-                SQL_QUERY = SQL_GENES_FILTERED
+                sql_query = SQL_GENES_FILTERED
 
             # create a temp table and insert into
             temp_table = f'lookup_ids_{utils.create_random_string()}'
 
-            SQL_TEMP = (f'CREATE TEMPORARY TABLE {temp_table} ( '
+            sql_temp = (f'CREATE TEMPORARY TABLE {temp_table} ( '
                         'ensembl_id TEXT, '
                         'PRIMARY KEY (ensembl_id) );')
 
-            cursor.execute(SQL_TEMP)
+            cursor.execute(sql_temp)
 
-            SQL_TEMP = f'INSERT INTO {temp_table} VALUES (?);'
+            sql_temp = f'INSERT INTO {temp_table} VALUES (?);'
             _ids = [(_,) for _ in ids]
-            cursor.executemany(SQL_TEMP, _ids)
+            cursor.executemany(sql_temp, _ids)
 
             # make sure we add the temp table name to the query
-            SQL_QUERY = SQL_QUERY.format(temp_table)
+            sql_query = sql_query.format(temp_table)
         else:
             if details:
-                SQL_QUERY = SQL_GENES_FULL_ALL
+                sql_query = SQL_GENES_FULL_ALL
             else:
-                SQL_QUERY = SQL_GENES_ALL
+                sql_query = SQL_GENES_ALL
 
         if order and order.lower() == 'position':
-            SQL_QUERY = f'{SQL_QUERY} {SQL_GENES_ORDER_BY_POSITION}'
+            sql_query = f'{sql_query} {SQL_GENES_ORDER_BY_POSITION}'
         else:
-            SQL_QUERY = f'{SQL_QUERY} {SQL_GENES_ORDER_BY_ID}'
+            sql_query = f'{sql_query} {SQL_GENES_ORDER_BY_ID}'
 
 
         #
         # execute the query
         #
 
-        for row in cursor.execute(SQL_QUERY, {}):
+        for row in cursor.execute(sql_query, {}):
             gene_id = row['gene_id']
             ensembl_id = row['ensembl_id']
             match_id = row['match_id']
@@ -531,7 +564,7 @@ def get(ids=None, species=None, version=None, order='id', details=False):
         cursor.close()
 
         if details:
-            homologs = get_homology(ids, species, version)
+            homologs = get_homology(ids, species, release)
 
             # convert transcripts, etc to sorted list rather than dict
             ret = OrderedDict()
@@ -568,7 +601,46 @@ def get(ids=None, species=None, version=None, order='id', details=False):
     return results
 
 
+def random_ids(source_db='Ensembl', limit=10, release=None, species=None):
+    """Get random ids.
 
+    Args:
+        source_db (str): source database identifier
+        limit (int): Number of ids to return
+        release (str): The Ensembl release or None for latest.
+        species (str): The Ensembl species identifier.
 
+    Returns:
+        list: A ``list`` of ``dicts`` with the following keys:
+            * chromosome
+            * length
+            * order
 
+    """
+    source_db = fetch_utils.nvl(source_db, 'Ensembl')
+    limit = fetch_utils.nvli(limit, 10)
 
+    valid_db_ids = ['Ensembl', 'Ensembl_homolog']
+    external_dbs = fetch_get.external_dbs(release, species)
+
+    for db in external_dbs:
+        valid_db_ids.append(db['external_db_id'])
+
+    if source_db not in valid_db_ids:
+        raise ValueError(f'Valid source dbs are: {",".join(valid_db_ids)}')
+
+    sql_statement = SQL_IDS_RANDOM
+
+    conn = fetch_utils.connect_to_database(release, species)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    params = {'source_db': source_db,
+              'limit': int(limit)}
+
+    ids = []
+
+    for row in cursor.execute(sql_statement, params):
+        ids.append(row['random_id'])
+
+    return ids

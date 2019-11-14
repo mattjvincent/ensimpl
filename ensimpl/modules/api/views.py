@@ -37,32 +37,66 @@ def support_jsonp(func):
     return decorated_function
 
 
-@api.route("/js/ensimpl.js")
-def ensimpl_js():
-    """Get the Ensimpl Javascript file.
 
-    Returns:
-        :class:`flask.Response`: The response which is the Javascript file.
-    """
-    headers = {'Content-Type': 'application/javascript'}
-    return render_template('api/ensimpl.js'), 200, headers
+'''
+
+JSONP - GET only
+
+GET /api/releases
+
+GET /api/stats?release=<:string>&species=<:string>
+
+GET /api/chromosomes?release=<:string>&species=<:string>
+
+GET /api/karyotypes?release=<:string>&species=<:string>
+
+GET /api/extdbs?release=<:string>&species=<:string>
+
+POST /api/extids
+
+    -- source_ids:list of string
+    -- source_db:string
+    -- release:string
+    -- species:string
+
+-- get single gene information 
+GET /api/gene/<ensembl_id:string>?release=<:string>&species=<:string>&details=<:string>
+
+-- get batch gene information
+POST /api/genes
+
+    -- ensembl_ids:list of string
+    -- release:string
+    -- species:string
+    -- details:string
+
+-- get single gene history information 
+GET /api/gene_history/<ensembl_id:string>?release=<:string>&species=<:string>&details=<:string>
 
 
-@api.route("/versions")
+GET /api/search/gene?q=<:string>&limit=<:number>&release=<:string>&species=<:string>&details=<:string>
+
+-- get single gene history information 
+GET /api/random_ids/<source_db:string>?release=<:string>&species=<:string>&details=<:string>
+
+
+'''
+
+@api.route("/releases", methods=['GET'])
 @support_jsonp
-def versions():
-    """Get the version and species information.
+def releases():
+    """Get all the release and species information.
 
     No parameters are needed.
 
     If successful, a JSON response will be returned with a single
-    ``version`` element containing a ``list`` of versions consisting of the
+    ``release`` element containing a ``list`` of releases consisting of the
     following items:
 
     ==============  =======  ==================================================
     Param           Type     Description
     ==============  =======  ==================================================
-    version         integer  the Ensembl version number
+    release         integer  the Ensembl release
     species         string   the species identifier (example 'Hs', 'Mm')
     assembly        string   the genome assembly information
     assembly_patch  string   the genome assembly patch number
@@ -76,41 +110,41 @@ def versions():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    version_info = []
+    release_info = []
 
     try:
-        for it in db_config.ENSIMPL_DBS:
-            version_info.append(get.meta(it['species'], it['version']))
+        for dbs in db_config.ENSIMPL_DBS:
+            release_info.append(get.db_meta(dbs['release'], dbs['species']))
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
         return response
 
-    return jsonify({'versions': version_info})
+    return jsonify({'releases': release_info})
 
 
-@api.route("/info", methods=['GET', 'POST'])
+@api.route("/stats", methods=['GET'])
 @support_jsonp
-def info():
-    """Get the information for a particular Ensembl version and species.
+def stats():
+    """Get the information for a particular Ensembl release and species.
 
     The following is a list of the valid parameters:
 
     =======  =======  ===================================================
     Param    Type     Description
     =======  =======  ===================================================
-    version  integer  the Ensembl version number
+    release  string   the Ensembl release
     species  string   the species identifier (example 'Hs', 'Mm')
     =======  =======  ===================================================
 
     If successful, a JSON response will be returned with a single
-    ``version`` element containing a ``list`` of versions consisting of the
+    ``release`` element containing a ``list`` of releases consisting of the
     following items:
 
     ==============  =======  ==================================================
     Param           Type     Description
     ==============  =======  ==================================================
-    version         integer  the Ensembl version number
+    release         string   the Ensembl release
     species         string   the species identifier (example 'Hs', 'Mm')
     assembly        string   the genome assembly information
     assembly_patch  string   the genome assembly patch number
@@ -125,22 +159,14 @@ def info():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    species = None
-    version = None
-
-    if request.is_json:
-        if 'version' in request.json:
-            version = request.json['version']
-        if 'species' in request.json:
-            species = request.json['species']
-    else:
-        species = request.values.get('species', None)
-        version = request.values.get('version', None)
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
 
     ret = {}
 
     try:
-        ret['info'] = get.info(species, version)
+        ret['meta'] = get.db_meta(release, species)
+        ret['stats'] = get.stats(release, species)
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
@@ -149,7 +175,7 @@ def info():
     return jsonify(ret)
 
 
-@api.route("/chromosomes", methods=['GET', 'POST'])
+@api.route("/chromosomes", methods=['GET'])
 @support_jsonp
 def chromosomes():
     """Get the chromosome information.
@@ -159,7 +185,7 @@ def chromosomes():
     =======  =======  ===================================================
     Param    Type     Description
     =======  =======  ===================================================
-    version  integer  the Ensembl version number
+    release  string   the Ensembl release
     species  string   the species identifier (example 'Hs', 'Mm')
     =======  =======  ===================================================
 
@@ -183,29 +209,14 @@ def chromosomes():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    species = None
-    version = None
-
-    if request.is_json:
-        if 'version' in request.json:
-            version = request.json['version']
-        if 'species' in request.json:
-            species = request.json['species']
-    else:
-        species = request.values.get('species', None)
-        version = request.values.get('version', None)
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
 
     ret = {}
 
     try:
-        meta = get.meta(species, version)
-        ret['version'] = meta['version']
-        ret['species'] = meta['species']
-        ret['assembly'] = meta['assembly']
-        ret['assembly_patch'] = meta['assembly_patch']
-        ret['url'] = meta['url']
-
-        ret['chromosomes'] = get.chromosomes(species, version)
+        ret['meta'] = get.db_meta(release, species)
+        ret['chromosomes'] = get.chromosomes(release, species)
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
@@ -214,7 +225,7 @@ def chromosomes():
     return jsonify(ret)
 
 
-@api.route("/karyotypes", methods=['GET', 'POST'])
+@api.route("/karyotypes", methods=['GET'])
 @support_jsonp
 def karyotypes():
     """Get the karyotype information.
@@ -224,7 +235,7 @@ def karyotypes():
     =======  =======  ===================================================
     Param    Type     Description
     =======  =======  ===================================================
-    version  integer  the Ensembl version number
+    release  string   the Ensembl release
     species  string   the species identifier (example 'Hs', 'Mm')
     =======  =======  ===================================================
 
@@ -260,29 +271,14 @@ def karyotypes():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    species = None
-    version = None
-
-    if request.is_json:
-        if 'version' in request.json:
-            version = request.json['version']
-        if 'species' in request.json:
-            species = request.json['species']
-    else:
-        species = request.values.get('species', None)
-        version = request.values.get('version', None)
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
 
     ret = {}
 
     try:
-        meta = get.meta(species, version)
-        ret['version'] = meta['version']
-        ret['species'] = meta['species']
-        ret['assembly'] = meta['assembly']
-        ret['assembly_patch'] = meta['assembly_patch']
-        ret['url'] = meta['url']
-
-        ret['chromosomes'] = get.karyotypes(species, version)
+        ret['meta'] = get.db_meta(release, species)
+        ret['chromosomes'] = get.karyotypes(release, species)
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
@@ -291,7 +287,7 @@ def karyotypes():
     return jsonify(ret)
 
 
-@api.route("/external_dbs", methods=['GET', 'POST'])
+@api.route("/external_dbs", methods=['GET'])
 @support_jsonp
 def external_dbs():
     """Get the external database information.
@@ -301,7 +297,7 @@ def external_dbs():
     =======  =======  ===================================================
     Param    Type     Description
     =======  =======  ===================================================
-    version  integer  the Ensembl version number
+    release  string   the Ensembl release
     species  string   the species identifier (example 'Hs', 'Mm')
     =======  =======  ===================================================
 
@@ -325,22 +321,14 @@ def external_dbs():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    species = None
-    version = None
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
 
-    if request.is_json:
-        if 'version' in request.json:
-            version = request.json['version']
-        if 'species' in request.json:
-            species = request.json['species']
-    else:
-        species = request.values.get('species', None)
-        version = request.values.get('version', None)
-
-    ret = {'external_dbs': None}
+    ret = {}
 
     try:
-        ret['external_dbs'] = get.external_dbs(species, version)
+        ret['meta'] = get.db_meta(release, species)
+        ret['external_dbs'] = get.external_dbs(release, species)
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
@@ -349,19 +337,19 @@ def external_dbs():
     return jsonify(ret)
 
 
-@api.route("/gene", methods=['GET'])
+@api.route("/gene/<ensembl_id>", methods=['GET'])
 @support_jsonp
-def gene():
+def gene(ensembl_id):
     """Get the information for an Ensembl gene.
 
-    The following is a list of the valid parameters:
+    The following is a list of the valid query parameters:
 
     =======  =======  ===================================================
     Param    Type     Description
     =======  =======  ===================================================
-    version  integer  the Ensembl version number
+    release  string   the Ensembl release
     species  string   the species identifier (example 'Hs', 'Mm')
-    id       string   the Ensembl id
+    details  string   true, false, T, F, 0, 1
     =======  =======  ===================================================
 
     If successful, a JSON response will be returned with a single ``gene``
@@ -411,28 +399,28 @@ def gene():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    species = fetch_utils.nvl(request.values.get('species', None), None)
-    version = fetch_utils.nvl(request.values.get('version', None), None)
-    id = fetch_utils.nvl(request.values.get('id', None), None)
-    details = ensimpl_utils.str2bool(request.values.get('details', 0))
-
-    ret = {'gene': None}
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
+    details = ensimpl_utils.str2bool(request.values.get('details', '0'))
 
     try:
+        ret = {'meta': get.db_meta(release, species),
+               'gene': None}
+
         if not id:
             raise ValueError('No id specified')
 
-        results = genes_ensimpl.get(ids=[id],
-                                    version=version,
+        results = genes_ensimpl.get(ids=[ensembl_id],
+                                    release=release,
                                     species=species,
                                     details=details)
 
         if len(results) == 0:
-            current_app.logger.info('No results found')
+            current_app.logger.info(f'No results found for: {ensembl_id}')
             return jsonify(ret)
 
         if len(results) > 1:
-            raise ValueError(f'Too many genes found for: {id}')
+            raise ValueError(f'Too many genes found for: {ensembl_id}')
 
         ret['gene'] = results
     except Exception as e:
@@ -451,14 +439,14 @@ def genes():
 
     The following is a list of the valid parameters:
 
-    =======  =======  ===================================================
-    Param    Type     Description
-    =======  =======  ===================================================
-    version  integer  the Ensembl version number
-    species  string   the species identifier (example 'Hs', 'Mm')
-    id       list     repeated id elements, one per Ensembl id
-    details  string   True for all information, False for high level
-    =======  =======  ===================================================
+    ==========  =======  ===================================================
+    Param       Type     Description
+    ==========  =======  ===================================================
+    ids         list     repeated id elements, one per Ensembl id
+    release     integer  the Ensembl release
+    species     string   the species identifier (example 'Hs', 'Mm')
+    details     string   True for all information, False for high level
+    ==========  =======  ===================================================
 
     If successful, a JSON response will be returned with multiple ``gene``
     elements, each consisting of the following items:
@@ -518,14 +506,14 @@ def genes():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    version = None
-    species = None
     ids = None
+    release = None
+    species = None
     details = False
 
     if request.is_json:
-        if 'version' in request.json:
-            version = request.json['version']
+        if 'release' in request.json:
+            release = request.json['release']
         if 'species' in request.json:
             species = request.json['species']
         if 'ids[]' in request.json:
@@ -533,24 +521,25 @@ def genes():
         if 'details' in request.json:
             details = ensimpl_utils.str2bool(request.json['details'])
     else:
-        version = request.values.get('version', None)
+        release = request.values.get('release', None)
         species = request.values.get('species', None)
         ids = request.values.getlist('ids[]', None)
-        details = ensimpl_utils.str2bool(request.values.get('details', 'F'))
+        details = ensimpl_utils.str2bool(request.values.get('details', '0'))
 
-    ret = {'ids': None}
+    ret = {'meta': get.db_meta(release, species),
+           'genes': None}
 
     try:
-        results = genes_ensimpl.get(version=version,
+        results = genes_ensimpl.get(ids=ids,
+                                    release=release,
                                     species=species,
-                                    ids=ids,
                                     details=details)
 
         if len(results) == 0:
             current_app.logger.info('No results found')
             return jsonify(ret)
 
-        ret['ids'] = results
+        ret['genes'] = results
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
@@ -566,13 +555,15 @@ def external_ids():
 
     The following is a list of the valid parameters:
 
-    =======  =======  ===================================================
-    Param    Type     Description
-    =======  =======  ===================================================
-    version  integer  the Ensembl version number
-    species  string   the species identifier (example 'Hs', 'Mm')
-    ids      list     repeated id elements, one per Ensembl id
-    =======  =======  ===================================================
+    ========  =======  ===================================================
+    Param     Type     Description
+    ========  =======  ===================================================
+    ids       list     repeated id elements, one per Ensembl id
+    source_db string   Defaults to 'Ensembl', but other are valid, please see
+                       external_dbs().
+    release   string   the Ensembl release
+    species   string   the species identifier (example 'Hs', 'Mm')
+    ========  =======  ===================================================
 
     If successful, a JSON response will be returned with multiple ``gene``
     elements, each consisting of the following items:
@@ -596,32 +587,33 @@ def external_ids():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    version = None
-    species = None
     ids = None
-    source_db = 'Ensembl'
+    source_db = False
+    release = None
+    species = None
 
     if request.is_json:
-        if 'version' in request.json:
-            version = request.json['version']
-        if 'species' in request.json:
-            species = request.json['species']
         if 'ids[]' in request.json:
             ids = request.json['ids[]']
         if 'source_db' in request.json:
             source_db = request.json['source_db']
+        if 'release' in request.json:
+            release = request.json['release']
+        if 'species' in request.json:
+            species = request.json['species']
     else:
-        version = request.values.get('version', None)
-        species = request.values.get('species', None)
         ids = request.values.getlist('ids[]', None)
         source_db = request.values.get('source_db', None)
+        release = request.values.get('release', None)
+        species = request.values.get('species', None)
 
-    ret = {'ids': None}
+    ret = {'meta': get.db_meta(release, species),
+           'ids': None}
 
     try:
-        results = genes_ensimpl.get_ids(version=version,
+        results = genes_ensimpl.get_ids(ids=ids,
+                                        release=release,
                                         species=species,
-                                        ids=ids,
                                         source_db=source_db)
 
         if len(results) == 0:
@@ -647,9 +639,9 @@ def search():
     =======  =======  ===================================================
     Param    Type     Description
     =======  =======  ===================================================
-    version  integer  the Ensembl version number
-    species  string   the species identifier (example 'Hs', 'Mm')
     term     string   the term to search for
+    release  string   the Ensembl release
+    species  string   the species identifier (example 'Hs', 'Mm')
     exact    string   to exact match or not, defaults to 'False'
     limit    string   max number of items to return, defaults to 100,000
     =======  =======  ===================================================
@@ -704,11 +696,11 @@ def search():
     """
     current_app.logger.debug(f'Call for: {request.method} {request.url}')
 
-    version = fetch_utils.nvl(request.values.get('version', None), None)
-    species = fetch_utils.nvl(request.values.get('species', None), None)
-    term = fetch_utils.nvl(request.values.get('term', None), None)
-    exact = ensimpl_utils.str2bool(request.values.get('exact', 'F'))
-    limit = fetch_utils.nvl(request.values.get('limit', '100000'), '100000')
+    term = request.values.get('term', None)
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
+    exact = ensimpl_utils.str2bool(request.values.get('exact', '0'))
+    limit = request.values.get('limit', '100000')
 
     try:
         limit = int(limit)
@@ -717,17 +709,19 @@ def search():
         current_app.logger.info(ve)
 
     request_params = {'term': term, 'species': species, 'exact': exact,
-                      'limit': limit, 'version': version}
+                      'limit': limit, 'release': release}
 
     current_app.logger.debug(f'PARAMS: {request_params}')
 
-    ret = {'request': request_params, 'result': {'num_results': 0,
-                                                 'num_matches': 0,
-                                                 'matches': None}}
+    ret = {'meta': get.db_meta(release, species),
+           'request': request_params,
+           'result': {'num_results': 0,
+                      'num_matches': 0,
+                      'matches': None}}
 
     try:
         results = search_ensimpl.search(term=term,
-                                        version=version,
+                                        release=release,
                                         species=species,
                                         exact=exact,
                                         limit=limit)
@@ -739,6 +733,7 @@ def search():
         ret['result']['num_results'] = results.num_results
         ret['result']['num_matches'] = results.num_matches
         ret['result']['matches'] = []
+
         for match in results.matches:
             ret['result']['matches'].append(match.dict())
 
@@ -778,40 +773,41 @@ def history():
 
     ensembl_id = None
     species = None
-    version_start = None
-    version_end = None
+    release_start = None
+    release_end = None
 
     if request.is_json:
         if 'ensembl_id' in request.json:
             ensembl_id = request.json['ensembl_id']
         if 'species' in request.json:
             species = request.json['species']
-        if 'version_start' in request.json:
-            version_start = fetch_utils.nvli(request.json['version_start'],
+        if 'release_start' in request.json:
+            release_start = fetch_utils.nvli(request.json['release_start'],
                                              None)
-        if 'version_end' in request.json:
-            version_end = fetch_utils.nvli(request.json['version_end'],
+        if 'release_end' in request.json:
+            release_end = fetch_utils.nvli(request.json['release_end'],
                                            None)
     else:
-        ensembl_id = fetch_utils.nvl(request.values.get('id', None), None)
-        species = fetch_utils.nvl(request.values.get('species', None), None)
-        version_start = fetch_utils.nvli(request.values.get('version_start', None), None)
-        version_end = fetch_utils.nvli(request.values.get('version_end', None), None)
+        ensembl_id = request.values.get('id', None)
+        species = request.values.get('species', None)
+        release_start = request.values.get('release_start', None)
+        release_end = request.values.get('release_end', None)
 
     request_params = {'ensembl_id': ensembl_id,
                       'species': species,
-                      'version_start': version_start,
-                      'version_end': version_end}
+                      'release_start': release_start,
+                      'release_end': release_end}
 
     current_app.logger.debug('PARAMS: {}'.format(request_params))
 
-    ret = {'request': request_params, 'history': None}
+    ret = {'request': request_params,
+           'history': None}
 
     try:
         results = genes_history.get_history(ensembl_id,
-                                            species,
-                                            version_start,
-                                            version_end)
+                                            release_start,
+                                            release_end,
+                                            species)
 
         if len(results) == 0:
             current_app.logger.info('No results found')
@@ -819,6 +815,57 @@ def history():
 
         ret['history'] = results
 
+    except Exception as e:
+        response = jsonify(message=str(e))
+        response.status_code = 500
+        return response
+
+    return jsonify(ret)
+
+
+@api.route("/randomids")
+@support_jsonp
+def random_ids():
+    """Get random ids.  Mostly useful for examples.
+
+    No parameters are needed, but the following are allowed:
+
+    ========  =======  ===================================================
+    Param     Type     Description
+    ========  =======  ===================================================
+    version   integer  the Ensembl version number
+    species   string   the species identifier (example 'Hs', 'Mm')
+    num       integer  Number of ids to return.
+    source_db string   Defaults to 'Ensembl', but other are valid, please see
+                       external_dbs().
+    ========  =======  ===================================================
+
+    If successful, a JSON response will be returned with an array of IDs.
+
+    If an error occurs, a JSON response will be sent back with just one
+    element called ``message`` along with a status code of 500.
+
+    Returns:
+        :class:`flask.Response`: The response which is a JSON response.
+    """
+    current_app.logger.debug(f'Call for: {request.method} {request.url}')
+
+    source_db = request.values.get('source_db', 'Ensembl')
+    limit = request.values.get('limit', None)
+    release = request.values.get('release', None)
+    species = request.values.get('species', None)
+
+    print(f'source_db={source_db}')
+    print(f'limit={limit}')
+    print(f'release={release}')
+    print(f'species={species}')
+
+    ret = {'meta': get.db_meta(release, species),
+           'ids': None}
+
+    try:
+        ret['ids'] = genes_ensimpl.random_ids(source_db, limit,
+                                              release, species)
     except Exception as e:
         response = jsonify(message=str(e))
         response.status_code = 500
