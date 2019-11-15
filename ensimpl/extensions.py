@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask_compress import Compress
-from flasgger import Swagger
+#from flasgger import Swagger
 
 
 compress = Compress()
