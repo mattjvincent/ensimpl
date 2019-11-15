@@ -11,7 +11,7 @@ import ensimpl.db_config as db_config
 
 #from ensimpl.extensions import debug_toolbar
 #from ensimpl.extensions import Swagger
-#from ensimpl.extensions import compress, Swagger
+from ensimpl.extensions import compress
 from ensimpl.modules.api.views import api
 from ensimpl.modules.page.views import page
 from ensimpl.utils import ReverseProxied
