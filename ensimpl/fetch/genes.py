@@ -410,6 +410,9 @@ def get(ids=None, release=None, species=None, order='id', details=False):
     """
     results = OrderedDict()
 
+    print(f'release={release}')
+    print(f'species={species}')
+
     try:
         conn = fetch_utils.connect_to_database(release, species)
         conn.row_factory = sqlite3.Row
@@ -564,7 +567,7 @@ def get(ids=None, release=None, species=None, order='id', details=False):
         cursor.close()
 
         if details:
-            homologs = get_homology(ids, species, release)
+            homologs = get_homology(ids, release, species)
 
             # convert transcripts, etc to sorted list rather than dict
             ret = OrderedDict()
