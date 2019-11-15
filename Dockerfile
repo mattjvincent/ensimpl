@@ -16,4 +16,4 @@ RUN pip install -r requirements.txt
 COPY . .
 RUN pip install --editable .
 
-CMD gunicorn -c "python:config.gunicorn" "ensimpl.app:create_app()"
+CMD gunicorn -c "python:config.gunicorn" ensimpl.app:create_app

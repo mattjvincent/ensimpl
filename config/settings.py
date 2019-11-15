@@ -10,7 +10,7 @@ PORT = 8000
 THREADED = True
 
 # to debug or not debug, that is the question
-DEBUG = True
+DEBUG = False
 
 # secret key, probably just leave alone
 SECRET_KEY = 'ENSIMPL-SECRET'
